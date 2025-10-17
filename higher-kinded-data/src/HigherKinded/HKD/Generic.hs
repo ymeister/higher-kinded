@@ -172,32 +172,40 @@ class GShow (named :: Bool) (rep :: Type -> Type) where
   gshow :: rep p -> String
 
 instance GShow named inner => GShow named (D1 meta inner) where
+  {-# INLINABLE gshow #-}
   gshow = gshow @named . unM1
 
 instance (GShow 'True inner, KnownSymbol name)
     => GShow any (C1 ('MetaCons name fixity 'True) inner) where
+  {-# INLINABLE gshow #-}
   gshow (M1 x) = symbolVal (Proxy @name) <> " {" <> gshow @'True x <> "}"
 
 instance (GShow 'False inner, KnownSymbol name)
     => GShow any (C1 ('MetaCons name fixity 'False) inner) where
+  {-# INLINABLE gshow #-}
   gshow (M1 x) = symbolVal (Proxy @name) <> " " <> gshow @'False x
 
 instance (GShow 'True left, GShow 'True right)
     => GShow 'True (left :*: right) where
+  {-# INLINABLE gshow #-}
   gshow (left :*: right) = gshow @'True left <> ", " <> gshow @'True right
 
 instance (GShow 'False left, GShow 'False right)
     => GShow 'False (left :*: right) where
+  {-# INLINABLE gshow #-}
   gshow (left :*: right) = gshow @'False left <> " " <> gshow @'False right
 
 instance (GShow 'True inner, KnownSymbol field)
     => GShow 'True (S1 ('MetaSel ('Just field) i d c) inner) where
+  {-# INLINABLE gshow #-}
   gshow (M1 inner) = symbolVal (Proxy @field) <> " = " <> gshow @'True inner
 
 instance GShow 'False inner => GShow 'False (S1 meta inner) where
+  {-# INLINABLE gshow #-}
   gshow (M1 inner) = gshow @'False inner
 
 instance (Show inner) => GShow named (K1 R inner) where
+  {-# INLINABLE gshow #-}
   gshow (K1 x) = show x
 
 instance (Generic structure, GShow 'True (HKD_ structure hkt f))
@@ -222,21 +230,33 @@ class GToTuple (rep :: Type -> Type) (tuple :: Type)
 
 instance GToTuple inner tuple
     => GToTuple (M1 index meta inner) tuple where
+  {-# INLINABLE gfromTuple #-}
   gfromTuple = M1 . gfromTuple
+
+  {-# INLINABLE gtoTuple #-}
   gtoTuple   = gtoTuple . unM1
 
 instance (GToTuple left left', GToTuple right right')
     => GToTuple (left :*: right) (left', right') where
+  {-# INLINABLE gfromTuple #-}
   gfromTuple (x, y) = gfromTuple x :*: gfromTuple y
+
+  {-# INLINABLE gtoTuple #-}
   gtoTuple (x :*: y) = (gtoTuple x, gtoTuple y)
 
 instance GToTuple (K1 index inner) inner where
+  {-# INLINABLE gfromTuple #-}
   gfromTuple = K1
+
+  {-# INLINABLE gtoTuple #-}
   gtoTuple = unK1
 
 instance (GToTuple (HKD_ structure hkt f) tuple)
     => Tuple structure hkt f tuple where
+  {-# INLINABLE toTuple #-}
   toTuple = gtoTuple . unGHKD
+
+  {-# INLINABLE fromTuple #-}
   fromTuple = GHKD . gfromTuple
 
 --------------------------------------------------------------------------------
@@ -248,6 +268,7 @@ instance
   =>
     TraversableB (HKD structure hkt)
   where
+    {-# INLINABLE btraverse #-}
     btraverse
       :: forall f g t.
          ( Applicative t
@@ -265,6 +286,7 @@ instance
   =>
     FunctorB (HKD structure hkt)
   where
+    {-# INLINABLE bmap #-}
     bmap
       :: forall f g.
          (forall x. f x -> g x)
@@ -281,12 +303,14 @@ instance
   =>
     ApplicativeB (HKD structure hkt)
   where
+    {-# INLINABLE bpure #-}
     bpure
       :: forall f.
          (forall a. f a)
       -> (HKD structure hkt) f
     bpure zero = pureHKD @(HKD structure hkt) @hkt @f zero
 
+    {-# INLINABLE bprod #-}
     bprod
       :: forall f g.
          (HKD structure hkt) f
@@ -305,6 +329,7 @@ instance
   where
     type AllB c (HKD structure hkt) = HKDFieldsHave c (HKD structure hkt)
 
+    {-# INLINABLE baddDicts #-}
     baddDicts
       :: forall c f.
          ( AllB c (HKD structure hkt)

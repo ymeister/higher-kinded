@@ -45,6 +45,7 @@ instance
   =>
     Build (HKD structure hkt f) k
   where
+    {-# INLINABLE build #-}
     build = gbuild @_ @structure @hkt @f (to . gupcast @list @(HKD_ structure hkt f))
 
 class
@@ -74,6 +75,7 @@ instance
   =>
     GBuild (D1 meta inner) structure hkt f k
   where
+    {-# INLINABLE gbuild #-}
     gbuild rebuild = gbuild (rebuild . M1)
 
 instance
@@ -81,6 +83,7 @@ instance
   =>
     GBuild (C1 meta inner) structure hkt f k
   where
+    {-# INLINABLE gbuild #-}
     gbuild rebuild = gbuild (rebuild . M1)
 
 instance
@@ -91,6 +94,7 @@ instance
   =>
     GBuild (S1 meta rec0) structure hkt f k
   where
+    {-# INLINABLE gbuild #-}
     gbuild fill (Arg inner) = fill (M1 (K1 inner))
 
 instance
@@ -102,6 +106,7 @@ instance
   =>
     GBuild (left :*: right) structure hkt f k
   where
+    {-# INLINABLE gbuild #-}
     gbuild fill (Arg left) = gbuild \right -> fill (M1 (K1 left) :*: right)
 
 

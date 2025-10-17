@@ -33,7 +33,10 @@ class ConstructHKD (hkd :: (Type -> Type) -> Type) (structure :: Type) (hkt :: (
   toHKD :: f structure -> hkd f
 
 instance {-# OVERLAPPABLE #-} GConstructHKD hkd structure hkt f => ConstructHKD hkd structure hkt f where
+  {-# INLINABLE fromHKD #-}
   fromHKD = fmap to . gFromHKD @(Rep structure) @hkt @f . from
+
+  {-# INLINABLE toHKD #-}
   toHKD = to . gToHKD @(Rep structure) @hkt @f . fmap from
 
 class
@@ -65,7 +68,10 @@ pattern HKD unHKD <- (fromHKD @hkd @structure @hkt @f -> unHKD) where
 
 
 instance GConstructHKD (HKD structure hkt) structure hkt f => ConstructHKD (HKD structure hkt) structure hkt f where
+  {-# INLINABLE fromHKD #-}
   fromHKD = fmap to . gFromHKD @(Rep structure) @hkt @f . unGHKD
+
+  {-# INLINABLE toHKD #-}
   toHKD = GHKD . gToHKD @(Rep structure) @hkt @f . fmap from
 
 
@@ -74,15 +80,32 @@ class GConstructHKDRep (rep :: Type -> Type) (hkt :: ((Type -> Type) -> Type -> 
   gFromHKD :: GHKD_ rep hkt f () -> f (rep ())
   gToHKD :: f (rep ()) -> GHKD_ rep hkt f ()
 
-instance (Functor f, GConstructHKDRep inner hkt f)
-    => GConstructHKDRep (M1 index meta inner) hkt f where
-  gFromHKD = fmap M1 . gFromHKD @inner @hkt @f . unM1
-  gToHKD = M1 . gToHKD @inner @hkt @f . fmap unM1
+instance
+    ( Functor f
+    , GConstructHKDRep inner hkt f
+    )
+  =>
+    GConstructHKDRep (M1 index meta inner) hkt f
+  where
+    {-# INLINABLE gFromHKD #-}
+    gFromHKD = fmap M1 . gFromHKD @inner @hkt @f . unM1
 
-instance (Applicative f, GConstructHKDRep left hkt f, GConstructHKDRep right hkt f)
-    => GConstructHKDRep (left :*: right) hkt f where
-  gFromHKD (l :*: r) = (:*:) <$> gFromHKD @left @hkt @f l <*> gFromHKD @right @hkt @f r
-  gToHKD lr = gToHKD @left @hkt @f ((\(l :*: _) -> l) <$> lr) :*: gToHKD @right @hkt @f ((\(_ :*: r) -> r) <$> lr)
+    {-# INLINABLE gToHKD #-}
+    gToHKD = M1 . gToHKD @inner @hkt @f . fmap unM1
+
+instance
+    ( Applicative f
+    , GConstructHKDRep left hkt f
+    , GConstructHKDRep right hkt f
+    )
+  =>
+    GConstructHKDRep (left :*: right) hkt f
+  where
+    {-# INLINABLE gFromHKD #-}
+    gFromHKD (l :*: r) = (:*:) <$> gFromHKD @left @hkt @f l <*> gFromHKD @right @hkt @f r
+
+    {-# INLINABLE gToHKD #-}
+    gToHKD lr = gToHKD @left @hkt @f ((\(l :*: _) -> l) <$> lr) :*: gToHKD @right @hkt @f ((\(_ :*: r) -> r) <$> lr)
 
 instance
     ( Functor f
@@ -92,7 +115,10 @@ instance
   =>
     GConstructHKDRep (K1 index (SubHKD subHKD)) hkt f
   where
+    {-# INLINABLE gFromHKD #-}
     gFromHKD = fmap (K1 . SubHKD) . fromHKD @(HKD subHKD hkt) @subHKD @hkt @f . unK1
+
+    {-# INLINABLE gToHKD #-}
     gToHKD = K1 . toHKD @(HKD subHKD hkt) @subHKD @hkt @f . fmap (unSubHKD . unK1)
 
 instance
@@ -106,11 +132,14 @@ instance
   =>
     GConstructHKDRep (K1 index (t (SubHKD subHKD))) hkt f
   where
+    {-# INLINABLE gFromHKD #-}
     gFromHKD =
         fmap (K1 . fmap SubHKD)
       . fmap (fromHKD @(HKD subHKD Applied) @subHKD @Applied @t)
       . fromHKD @(HKD subHKD' hkt) @subHKD' @hkt @f
       . unK1
+
+    {-# INLINABLE gToHKD #-}
     gToHKD =
         K1
       . toHKD @(HKD subHKD' hkt) @subHKD' @hkt @f
@@ -125,7 +154,10 @@ instance
   =>
     GConstructHKDRep (K1 index (Applied k t)) hkt f
   where
+    {-# INLINABLE gFromHKD #-}
     gFromHKD = fmap (K1 . Applied . unK1) . gFromHKD @(K1 index (k $~ t)) @hkt @f
+
+    {-# INLINABLE gToHKD #-}
     gToHKD = gToHKD @(K1 index (k $~ t)) @hkt @f . fmap (K1 . unApplied . unK1)
 
 instance {-# OVERLAPPABLE #-}
@@ -139,5 +171,8 @@ instance {-# OVERLAPPABLE #-}
   =>
     GConstructHKDRep (K1 index inner) hkt f
   where
+    {-# INLINABLE gFromHKD #-}
     gFromHKD = fmap K1 . fromHKT' @hkt @f @inner . view _UnHKT' . unK1
+
+    {-# INLINABLE gToHKD #-}
     gToHKD = K1 . (view _HKT' . toHKT' @hkt @f @inner) . fmap unK1

@@ -56,6 +56,7 @@ instance {-# OVERLAPPABLE #-}
     HKT' (t_f_a :: Type)
   where
     type UnHKT t_f_a = GUnHKT (Rep t_f_a)
+    {-# INLINABLE _HKT' #-}
     _HKT' = iso G.from G.to . iso remitter reviewer
         where
           remitter (M1 (M1 (M1 (K1 x)))) = x
