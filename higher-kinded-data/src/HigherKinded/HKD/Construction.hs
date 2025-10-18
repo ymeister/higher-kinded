@@ -109,16 +109,16 @@ instance
 instance
     ( Functor f
     , ConstructHKD (HKD subHKD hkt) subHKD hkt f
-    , GHKD_ (K1 index (SubHKD subHKD)) hkt f ~ K1 index (HKD subHKD hkt f)
+    , GHKD_ (K1 index (NestedHKD subHKD)) hkt f ~ K1 index (HKD subHKD hkt f)
     )
   =>
-    GConstructHKDRep (K1 index (SubHKD subHKD)) hkt f
+    GConstructHKDRep (K1 index (NestedHKD subHKD)) hkt f
   where
     {-# INLINABLE gFromHKD #-}
-    gFromHKD = fmap (K1 . SubHKD) . fromHKD @(HKD subHKD hkt) @subHKD @hkt @f . unK1
+    gFromHKD = fmap (K1 . NestedHKD) . fromHKD @(HKD subHKD hkt) @subHKD @hkt @f . unK1
 
     {-# INLINABLE gToHKD #-}
-    gToHKD = K1 . toHKD @(HKD subHKD hkt) @subHKD @hkt @f . fmap (unSubHKD . unK1)
+    gToHKD = K1 . toHKD @(HKD subHKD hkt) @subHKD @hkt @f . fmap (unNestedHKD . unK1)
 
 instance
     ( Functor f
@@ -126,14 +126,14 @@ instance
     , subHKD' ~ HKD subHKD Applied t
     , ConstructHKD (HKD subHKD Applied) subHKD Applied t
     , ConstructHKD (HKD subHKD' hkt) subHKD' hkt f
-    , GHKD_ (K1 index (t (SubHKD subHKD))) hkt f ~ K1 index (HKD subHKD' hkt f)
+    , GHKD_ (K1 index (t (NestedHKD subHKD))) hkt f ~ K1 index (HKD subHKD' hkt f)
     )
   =>
-    GConstructHKDRep (K1 index (t (SubHKD subHKD))) hkt f
+    GConstructHKDRep (K1 index (t (NestedHKD subHKD))) hkt f
   where
     {-# INLINABLE gFromHKD #-}
     gFromHKD =
-        fmap (K1 . fmap SubHKD)
+        fmap (K1 . fmap NestedHKD)
       . fmap (fromHKD @(HKD subHKD Applied) @subHKD @Applied @t)
       . fromHKD @(HKD subHKD' hkt) @subHKD' @hkt @f
       . unK1
@@ -143,7 +143,7 @@ instance
         K1
       . toHKD @(HKD subHKD' hkt) @subHKD' @hkt @f
       . fmap (toHKD @(HKD subHKD Applied) @subHKD @Applied @t)
-      . fmap (fmap unSubHKD . unK1)
+      . fmap (fmap unNestedHKD . unK1)
 
 instance
     ( Functor f
@@ -160,11 +160,11 @@ instance
     gToHKD = gToHKD @(K1 index (k $~ t)) @hkt @f . fmap (K1 . unApplied . unK1)
 
 instance {-# OVERLAPPABLE #-}
-    ( Applicative f
+    ( Functor f
     , FromHKT hkt f inner
     , ToHKT hkt f inner
-    , GHKD_ (K1 index inner) hkt f ~ K1 index (HKT (hkt f inner))
     , IsHKT' (hkt f inner)
+    , GHKD_ (K1 index inner) hkt f ~ K1 index (HKT (hkt f inner))
     )
   =>
     GConstructHKDRep (K1 index inner) hkt f

@@ -70,14 +70,14 @@ type family GHKD_ structureRep hkt f = (res :: Type -> Type) where
   GHKD_ (M1 index meta inner) hkt f = M1 index meta (GHKD_ inner hkt f)
   GHKD_ (left :*: right) hkt f = GHKD_ left hkt f :*: GHKD_ right hkt f
   GHKD_ (left :+: right) hkt f = GHKD_ left hkt f :+: GHKD_ right hkt f
-  GHKD_ (K1 index (SubHKD subHKD)) hkt f = K1 index (HKD subHKD hkt f)
-  GHKD_ (K1 index (t (SubHKD subHKD))) hkt f = K1 index (HKD (HKD subHKD Applied t) hkt f)
+  GHKD_ (K1 index (NestedHKD subHKD)) hkt f = K1 index (HKD subHKD hkt f)
+  GHKD_ (K1 index (t (NestedHKD subHKD))) hkt f = K1 index (HKD (HKD subHKD Applied t) hkt f)
   GHKD_ (K1 index (Applied k t)) hkt f = GHKD_ (K1 index (k $~ t)) hkt f
   GHKD_ (K1 index value) hkt f = K1 index (HKT (hkt f value))
 
 --------------------------------------------------------------------------------
 
-newtype SubHKD t = SubHKD { unSubHKD :: t }
+newtype NestedHKD t = NestedHKD { unNestedHKD :: t }
   deriving newtype (Eq, Ord, Show, Generic)
 
 type WithMods :: Type -> [Type] -> Type
@@ -87,26 +87,17 @@ type (.~) :: Symbol -> Type -> Type
 type (.~) field t = field %~ Applied (Const t)
 
 #ifdef VERSION_aeson
-deriving newtype instance ToJSON t => ToJSON (SubHKD t)
-deriving newtype instance FromJSON t => FromJSON (SubHKD t)
+deriving newtype instance ToJSON t => ToJSON (NestedHKD t)
+deriving newtype instance FromJSON t => FromJSON (NestedHKD t)
 
-deriving newtype instance ToJSONKey t => ToJSONKey (SubHKD t)
-deriving newtype instance FromJSONKey t => FromJSONKey (SubHKD t)
+deriving newtype instance ToJSONKey t => ToJSONKey (NestedHKD t)
+deriving newtype instance FromJSONKey t => FromJSONKey (NestedHKD t)
 #endif
 
 #ifdef VERSION_QuickCheck
-deriving newtype instance Arbitrary t => Arbitrary (SubHKD t)
-deriving newtype instance CoArbitrary t => CoArbitrary (SubHKD t)
+deriving newtype instance Arbitrary t => Arbitrary (NestedHKD t)
+deriving newtype instance CoArbitrary t => CoArbitrary (NestedHKD t)
 #endif
-
---------------------------------------------------------------------------------
-
-type NewtypeHKD :: ((Type -> Type) -> Type) -> (Type -> Type) -> Type
-type family NewtypeHKD hkd f
-type instance NewtypeHKD (HKD structure hkt) f = GUnNewtypeHKD_ (Rep (HKD structure hkt f))
-
-type family GUnNewtypeHKD_ rep where
-  GUnNewtypeHKD_ (D1 d (C1 c (S1 s' (Rec0 x)))) = x
 
 --------------------------------------------------------------------------------
 

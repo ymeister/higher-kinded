@@ -55,9 +55,9 @@ class
         (rep_g' :: Type -> Type)
         . ( IsNormalHKD hkd hkt f'
           , IsNormalHKD hkd hkt g'
-          , rep_exp ~ NormalHKD hkd Exposed
-          , rep_f' ~ NormalHKD hkd f'
-          , rep_g' ~ NormalHKD hkd g'
+          , rep_exp ~ NormalHKDRep hkd hkt Exposed
+          , rep_f' ~ NormalHKDRep hkd hkt f'
+          , rep_g' ~ NormalHKDRep hkd hkt g'
           ) => GTraversableNormalHKDRep hkt f' g' rep_exp rep_f' rep_g'
     , forall
         (f' :: Type -> Type)
@@ -70,10 +70,10 @@ class
         . ( IsNormalHKD hkd hkt f'
           , IsNormalHKD hkd hkt g'
           , IsNormalHKD hkd hkt h'
-          , rep_exp ~ NormalHKD hkd Exposed
-          , rep_f' ~ NormalHKD hkd f'
-          , rep_g' ~ NormalHKD hkd g'
-          , rep_h' ~ NormalHKD hkd h'
+          , rep_exp ~ NormalHKDRep hkd hkt Exposed
+          , rep_f' ~ NormalHKDRep hkd hkt f'
+          , rep_g' ~ NormalHKDRep hkd hkt g'
+          , rep_h' ~ NormalHKDRep hkd hkt h'
           ) => GBiTraversableNormalHKDRep hkt f' g' h' rep_exp rep_f' rep_g' rep_h'
     )
   => IsHKD (hkd :: (Type -> Type) -> Type) (hkt :: (Type -> Type) -> Type -> Type) (f :: Type -> Type)
@@ -89,9 +89,9 @@ instance
         (rep_g' :: Type -> Type)
         . ( IsNormalHKD hkd hkt f'
           , IsNormalHKD hkd hkt g'
-          , rep_exp ~ NormalHKD hkd Exposed
-          , rep_f' ~ NormalHKD hkd f'
-          , rep_g' ~ NormalHKD hkd g'
+          , rep_exp ~ NormalHKDRep hkd hkt Exposed
+          , rep_f' ~ NormalHKDRep hkd hkt f'
+          , rep_g' ~ NormalHKDRep hkd hkt g'
           ) => GTraversableNormalHKDRep hkt f' g' rep_exp rep_f' rep_g'
     , forall
         (f' :: Type -> Type)
@@ -104,33 +104,37 @@ instance
         . ( IsNormalHKD hkd hkt f'
           , IsNormalHKD hkd hkt g'
           , IsNormalHKD hkd hkt h'
-          , rep_exp ~ NormalHKD hkd Exposed
-          , rep_f' ~ NormalHKD hkd f'
-          , rep_g' ~ NormalHKD hkd g'
-          , rep_h' ~ NormalHKD hkd h'
+          , rep_exp ~ NormalHKDRep hkd hkt Exposed
+          , rep_f' ~ NormalHKDRep hkd hkt f'
+          , rep_g' ~ NormalHKDRep hkd hkt g'
+          , rep_h' ~ NormalHKDRep hkd hkt h'
           ) => GBiTraversableNormalHKDRep hkt f' g' h' rep_exp rep_f' rep_g' rep_h'
     )
   => IsHKD hkd hkt f
 
 --------------------------------------------------------------------------------
 
-type NormalHKD hkd f = NormalHKDRep f (Rep (hkd Exposed)) (Rep (hkd f))
+newtype NormalHKD hkd hkt f x = NormalHKD
+  { unNormalHKD :: NormalHKDRep hkd hkt f x
+  }
+
+type NormalHKDRep hkd hkt f = GNormalHKDRep hkt f (Rep (hkd Exposed)) (Rep (hkd f))
 
 class
     ( Generic (hkd f)
     , Generic (hkd Exposed)
-    , GNormalHKDRep hkt f (Rep (hkd Exposed)) (Rep (hkd f))
+    , GIsNormalHKDRep hkt f (Rep (hkd Exposed)) (Rep (hkd f))
     )
   =>
     IsNormalHKD hkd hkt f
   where
-    toNormalHKD :: hkd f -> NormalHKD hkd f x
-    fromNormalHKD :: NormalHKD hkd f x -> hkd f
+    toNormalHKD :: hkd f -> NormalHKDRep hkd hkt f x
+    fromNormalHKD :: NormalHKDRep hkd hkt f x -> hkd f
 
 instance
     ( Generic (hkd f)
     , Generic (hkd Exposed)
-    , GNormalHKDRep hkt f (Rep (hkd Exposed)) (Rep (hkd f))
+    , GIsNormalHKDRep hkt f (Rep (hkd Exposed)) (Rep (hkd f))
     )
   =>
     IsNormalHKD hkd hkt f
@@ -143,19 +147,19 @@ instance
 
 
 
-class GNormalHKDRep hkt f rep_exp rep where
-  type NormalHKDRep f rep_exp rep :: Type -> Type
+class GIsNormalHKDRep hkt f rep_exp rep where
+  type GNormalHKDRep hkt f rep_exp rep :: Type -> Type
 
   gtoNormalHKDRep
     :: rep p
-    -> NormalHKDRep f rep_exp rep p
+    -> GNormalHKDRep hkt f rep_exp rep p
 
   gfromNormalHKDRep
-    :: NormalHKDRep f rep_exp rep p
+    :: GNormalHKDRep hkt f rep_exp rep p
     -> rep p
 
-instance GNormalHKDRep hkt f V1 V1 where
-  type NormalHKDRep f V1 V1 = V1
+instance GIsNormalHKDRep hkt f V1 V1 where
+  type GNormalHKDRep hkt f V1 V1 = V1
 
   {-# INLINABLE gtoNormalHKDRep #-}
   gtoNormalHKDRep _ = undefined
@@ -163,8 +167,8 @@ instance GNormalHKDRep hkt f V1 V1 where
   {-# INLINABLE gfromNormalHKDRep #-}
   gfromNormalHKDRep _ = undefined
 
-instance GNormalHKDRep hkt f U1 U1 where
-  type NormalHKDRep f U1 U1 = U1
+instance GIsNormalHKDRep hkt f U1 U1 where
+  type GNormalHKDRep hkt f U1 U1 = U1
 
   {-# INLINABLE gtoNormalHKDRep #-}
   gtoNormalHKDRep _ = U1
@@ -173,24 +177,24 @@ instance GNormalHKDRep hkt f U1 U1 where
   gfromNormalHKDRep _ = U1
 
 instance
-    GNormalHKDRep hkt f rep_exp rep
+    GIsNormalHKDRep hkt f rep_exp rep
   =>
-    GNormalHKDRep hkt f (Rec1 rep_exp) (Rec1 rep)
+    GIsNormalHKDRep hkt f (Rec1 rep_exp) (Rec1 rep)
   where
-    type NormalHKDRep f (Rec1 rep_exp) (Rec1 rep) = Rec1 (NormalHKDRep f rep_exp rep)
+    type GNormalHKDRep hkt f (Rec1 rep_exp) (Rec1 rep) = Rec1 (GNormalHKDRep hkt f rep_exp rep)
 
     {-# INLINABLE gtoNormalHKDRep #-}
-    gtoNormalHKDRep ~(Rec1 rep) = Rec1 $ gtoNormalHKDRep @hkt @f @rep_exp @rep rep
+    gtoNormalHKDRep (Rec1 rep) = Rec1 $ gtoNormalHKDRep @hkt @f @rep_exp @rep rep
 
     {-# INLINABLE gfromNormalHKDRep #-}
-    gfromNormalHKDRep ~(Rec1 rep) = Rec1 $ gfromNormalHKDRep @hkt @f @rep_exp @rep rep
+    gfromNormalHKDRep (Rec1 rep) = Rec1 $ gfromNormalHKDRep @hkt @f @rep_exp @rep rep
 
 instance
-    GNormalHKDRep hkt f rep_exp rep
+    GIsNormalHKDRep hkt f rep_exp rep
   =>
-    GNormalHKDRep hkt f (M1 i c rep_exp) (M1 i c rep)
+    GIsNormalHKDRep hkt f (M1 i c rep_exp) (M1 i c rep)
   where
-    type NormalHKDRep f (M1 i c rep_exp) (M1 i c rep) = M1 i c (NormalHKDRep f rep_exp rep)
+    type GNormalHKDRep hkt f (M1 i c rep_exp) (M1 i c rep) = M1 i c (GNormalHKDRep hkt f rep_exp rep)
 
     {-# INLINABLE gtoNormalHKDRep #-}
     gtoNormalHKDRep ~(M1 rep) = M1 $ gtoNormalHKDRep @hkt @f @rep_exp @rep rep
@@ -199,13 +203,13 @@ instance
     gfromNormalHKDRep ~(M1 rep) = M1 $ gfromNormalHKDRep @hkt @f @rep_exp @rep rep
 
 instance
-    ( GNormalHKDRep hkt f rep_exp1 rep1
-    , GNormalHKDRep hkt f rep_exp2 rep2
+    ( GIsNormalHKDRep hkt f rep_exp1 rep1
+    , GIsNormalHKDRep hkt f rep_exp2 rep2
     )
   =>
-    GNormalHKDRep hkt f (rep_exp1 :*: rep_exp2) (rep1 :*: rep2)
+    GIsNormalHKDRep hkt f (rep_exp1 :*: rep_exp2) (rep1 :*: rep2)
   where
-    type NormalHKDRep f (rep_exp1 :*: rep_exp2) (rep1 :*: rep2) = NormalHKDRep f rep_exp1 rep1 :*: NormalHKDRep f rep_exp2 rep2
+    type GNormalHKDRep hkt f (rep_exp1 :*: rep_exp2) (rep1 :*: rep2) = GNormalHKDRep hkt f rep_exp1 rep1 :*: GNormalHKDRep hkt f rep_exp2 rep2
 
     {-# INLINABLE gtoNormalHKDRep #-}
     gtoNormalHKDRep ~(rep1 :*: rep2) =
@@ -218,13 +222,13 @@ instance
       :*: gfromNormalHKDRep @hkt @f @rep_exp2 @rep2 rep2
 
 instance
-    ( GNormalHKDRep hkt f rep_exp1 rep1
-    , GNormalHKDRep hkt f rep_exp2 rep2
+    ( GIsNormalHKDRep hkt f rep_exp1 rep1
+    , GIsNormalHKDRep hkt f rep_exp2 rep2
     )
   =>
-    GNormalHKDRep hkt f (rep_exp1 :+: rep_exp2) (rep1 :+: rep2)
+    GIsNormalHKDRep hkt f (rep_exp1 :+: rep_exp2) (rep1 :+: rep2)
   where
-    type NormalHKDRep f (rep_exp1 :+: rep_exp2) (rep1 :+: rep2) = NormalHKDRep f rep_exp1 rep1 :+: NormalHKDRep f rep_exp2 rep2
+    type GNormalHKDRep hkt f (rep_exp1 :+: rep_exp2) (rep1 :+: rep2) = GNormalHKDRep hkt f rep_exp1 rep1 :+: GNormalHKDRep hkt f rep_exp2 rep2
 
     {-# INLINABLE gtoNormalHKDRep #-}
     gtoNormalHKDRep = \case
@@ -240,9 +244,9 @@ instance
     ( f_x ~$ hkt f x
     )
   =>
-    GNormalHKDRep (hkt :: (Type -> Type) -> Type -> Type) f (K1 i (Exposed x)) (K1 i f_x)
+    GIsNormalHKDRep (hkt :: (Type -> Type) -> Type -> Type) f (K1 i (Exposed x)) (K1 i f_x)
   where
-    type NormalHKDRep f (K1 i (Exposed x)) (K1 i f_x) = K1 i (f x)
+    type GNormalHKDRep hkt f (K1 i (Exposed x)) (K1 i f_x) = K1 i (f x)
 
     {-# INLINABLE gtoNormalHKDRep #-}
     gtoNormalHKDRep ~(K1 f_x) = K1 $ fromHK @hkt @f @x f_x
@@ -253,28 +257,28 @@ instance
 instance
     IsNormalHKD hkd hkt f
   =>
-    GNormalHKDRep hkt f (K1 i (hkd Exposed)) (K1 i (hkd f))
+    GIsNormalHKDRep hkt f (K1 i (hkd Exposed)) (K1 i (hkd f))
   where
-    type NormalHKDRep f (K1 i (hkd Exposed)) (K1 i (hkd f)) = K1 i (NormalHKD hkd f ())
+    type GNormalHKDRep hkt f (K1 i (hkd Exposed)) (K1 i (hkd f)) = K1 i (NormalHKD hkd hkt f ())
 
     {-# INLINABLE gtoNormalHKDRep #-}
-    gtoNormalHKDRep ~(K1 hkd) = K1 $ toNormalHKD @hkd @hkt @f hkd
+    gtoNormalHKDRep ~(K1 hkd) = K1 $ NormalHKD $ toNormalHKD @hkd @hkt @f hkd
 
     {-# INLINABLE gfromNormalHKDRep #-}
-    gfromNormalHKDRep ~(K1 hkd) = K1 $ fromNormalHKD @hkd @hkt @f hkd
+    gfromNormalHKDRep ~(K1 ~(NormalHKD hkd)) = K1 $ fromNormalHKD @hkd @hkt @f hkd
 
 instance
     IsNormalHKD hkd hkt (t f)
   =>
-    GNormalHKDRep hkt f (K1 i (hkd (t Exposed))) (K1 i (hkd (t f)))
+    GIsNormalHKDRep hkt f (K1 i (hkd (t Exposed))) (K1 i (hkd (t f)))
   where
-    type NormalHKDRep f (K1 i (hkd (t Exposed))) (K1 i (hkd (t f))) = K1 i (NormalHKD hkd (t f) ())
+    type GNormalHKDRep hkt f (K1 i (hkd (t Exposed))) (K1 i (hkd (t f))) = K1 i (NormalHKD hkd hkt (t f) ())
 
     {-# INLINABLE gtoNormalHKDRep #-}
-    gtoNormalHKDRep ~(K1 hkd) = K1 $ toNormalHKD @hkd @hkt @(t f) hkd
+    gtoNormalHKDRep ~(K1 hkd) = K1 $ NormalHKD $ toNormalHKD @hkd @hkt @(t f) hkd
 
     {-# INLINABLE gfromNormalHKDRep #-}
-    gfromNormalHKDRep ~(K1 hkd) = K1 $ fromNormalHKD @hkd @hkt @(t f) hkd
+    gfromNormalHKDRep ~(K1 ~(NormalHKD hkd)) = K1 $ fromNormalHKD @hkd @hkt @(t f) hkd
 
 --------------------------------------------------------------------------------
 
@@ -292,7 +296,7 @@ class
     default isoHKD
       :: ( IsNormalHKD hkd1 hkt1 f
          , IsNormalHKD hkd2 hkt2 f
-         , NormalHKD hkd1 f ~ NormalHKD hkd2 f
+         , NormalHKDRep hkd1 hkt1 f ~ NormalHKDRep hkd2 hkt2 f
          )
       => hkd1 f -> hkd2 f
     isoHKD = fromNormalHKD @hkd2 @hkt2 @f @() . toNormalHKD @hkd1 @hkt1 @f @()
@@ -300,7 +304,7 @@ class
 instance {-# OVERLAPPABLE #-}
     ( IsNormalHKD hkd1 hkt1 f
     , IsNormalHKD hkd2 hkt2 f
-    , NormalHKD hkd1 f ~ NormalHKD hkd2 f
+    , NormalHKDRep hkd1 hkt1 f ~ NormalHKDRep hkd2 hkt2 f
     )
   => IsoHKD hkd1 hkd2 hkt1 hkt2 f
 
@@ -317,8 +321,8 @@ coerceHKD
      ( IsNormalHKD hkd1 hkt1 f
      , IsNormalHKD hkd2 hkt2 f
      , Coercible
-         (NormalHKDRep f (Rep (hkd1 Exposed)) (Rep (hkd1 f)) ())
-         (NormalHKDRep f (Rep (hkd2 Exposed)) (Rep (hkd2 f)) ())
+         (GNormalHKDRep hkt1 f (Rep (hkd1 Exposed)) (Rep (hkd1 f)) ())
+         (GNormalHKDRep hkt2 f (Rep (hkd2 Exposed)) (Rep (hkd2 f)) ())
      )
   => hkd1 f -> hkd2 f
 coerceHKD = fromNormalHKD @hkd2 @hkt2 @f @() . coerce . toNormalHKD @hkd1 @hkt1 @f @()
@@ -353,7 +357,7 @@ class
     ( IsNormalHKD hkd hkt f
     , IsNormalHKD hkd hkt g
     , IsNormalHKD hkd hkt h
-    , GBiTraversableNormalHKDRep hkt f g h (NormalHKD hkd Exposed) (NormalHKD hkd f) (NormalHKD hkd g) (NormalHKD hkd h)
+    , GBiTraversableNormalHKDRep hkt f g h (NormalHKDRep hkd hkt Exposed) (NormalHKDRep hkd hkt f) (NormalHKDRep hkd hkt g) (NormalHKDRep hkd hkt h)
     )
   =>
     GBiTraversableHKD hkd hkt f g h
@@ -369,7 +373,7 @@ instance
     ( IsNormalHKD hkd hkt f
     , IsNormalHKD hkd hkt g
     , IsNormalHKD hkd hkt h
-    , GBiTraversableNormalHKDRep hkt f g h (NormalHKD hkd Exposed) (NormalHKD hkd f) (NormalHKD hkd g) (NormalHKD hkd h)
+    , GBiTraversableNormalHKDRep hkt f g h (NormalHKDRep hkd hkt Exposed) (NormalHKDRep hkd hkt f) (NormalHKDRep hkd hkt g) (NormalHKDRep hkd hkt h)
     )
   =>
     GBiTraversableHKD hkd hkt f g h
@@ -377,7 +381,7 @@ instance
     {-# INLINABLE gbitraverseHKD #-}
     gbitraverseHKD combine (hkd_f :: hkd f) (hkd_g :: hkd g) =
           fromNormalHKD @hkd @hkt @h @()
-      <$> gbitraverseNormalHKDRep @hkt @f @g @h @(NormalHKD hkd Exposed) @(NormalHKD hkd f) @(NormalHKD hkd g) @(NormalHKD hkd h)
+      <$> gbitraverseNormalHKDRep @hkt @f @g @h @(NormalHKDRep hkd hkt Exposed) @(NormalHKDRep hkd hkt f) @(NormalHKDRep hkd hkt g) @(NormalHKDRep hkd hkt h)
             combine
             (toNormalHKD @hkd @hkt @f @() hkd_f)
             (toNormalHKD @hkd @hkt @g @() hkd_g)
@@ -436,12 +440,44 @@ instance
     gbitraverseNormalHKDRep combine ~(K1 f_x) ~(K1 g_x) = K1 <$> combine f_x g_x
 
 instance
-    GBiTraversableNormalHKDRep hkt f g h rep_exp rep_f rep_g rep_h
+    ( GBiTraversableNormalHKDRep hkt f g h (NormalHKDRep hkd hkt Exposed) (NormalHKDRep hkd hkt f) (NormalHKDRep hkd hkt g) (NormalHKDRep hkd hkt h)
+    )
   =>
-    GBiTraversableNormalHKDRep hkt f g h (K1 ki (M1 mi mc rep_exp ())) (K1 ki (M1 mi mc rep_f ())) (K1 ki (M1 mi mc rep_g ())) (K1 ki (M1 mi mc rep_h ()))
+    GBiTraversableNormalHKDRep (hkt :: (Type -> Type) -> Type -> Type) f g h (K1 i (NormalHKD hkd hkt Exposed ())) (K1 i (NormalHKD hkd hkt f ())) (K1 i (NormalHKD hkd hkt g ())) (K1 i (NormalHKD hkd hkt h ()))
   where
     {-# INLINABLE gbitraverseNormalHKDRep #-}
-    gbitraverseNormalHKDRep combine ~(K1 ~(M1 rep_f)) ~(K1 ~(M1 rep_g)) = K1 . M1 <$> gbitraverseNormalHKDRep @hkt @f @g @h @rep_exp @rep_f @rep_g @rep_h combine rep_f rep_g
+    gbitraverseNormalHKDRep combine ~(K1 hkd_f) ~(K1 hkd_g) =
+      K1 <$> gbitraverseNormalHKDRep @hkt @f @g @h @(NormalHKD hkd hkt Exposed) @(NormalHKD hkd hkt f) @(NormalHKD hkd hkt g) @(NormalHKD hkd hkt h) combine hkd_f hkd_g
+
+instance
+    ( GBiTraversableNormalHKDRep hkt f g h (NormalHKDRep hkd hkt Exposed) (NormalHKDRep hkd hkt f) (NormalHKDRep hkd hkt g) (NormalHKDRep hkd hkt h)
+    )
+  =>
+    GBiTraversableNormalHKDRep (hkt :: (Type -> Type) -> Type -> Type) f g h (NormalHKD hkd hkt Exposed) (NormalHKD hkd hkt f) (NormalHKD hkd hkt g) (NormalHKD hkd hkt h)
+  where
+    {-# INLINABLE gbitraverseNormalHKDRep #-}
+    gbitraverseNormalHKDRep combine ~(NormalHKD hkd_f) ~(NormalHKD hkd_g) =
+      NormalHKD <$> gbitraverseNormalHKDRep @hkt @f @g @h @(NormalHKDRep hkd hkt Exposed) @(NormalHKDRep hkd hkt f) @(NormalHKDRep hkd hkt g) @(NormalHKDRep hkd hkt h) combine hkd_f hkd_g
+
+instance
+    ( GBiTraversableNormalHKDRep hkt f g h (NormalHKDRep hkd hkt (t Exposed)) (NormalHKDRep hkd hkt (t f)) (NormalHKDRep hkd hkt (t g)) (NormalHKDRep hkd hkt (t h))
+    )
+  =>
+    GBiTraversableNormalHKDRep (hkt :: (Type -> Type) -> Type -> Type) f g h (K1 i (NormalHKD hkd hkt (t Exposed) ())) (K1 i (NormalHKD hkd hkt (t f) ())) (K1 i (NormalHKD hkd hkt (t g) ())) (K1 i (NormalHKD hkd hkt (t h) ()))
+  where
+    {-# INLINABLE gbitraverseNormalHKDRep #-}
+    gbitraverseNormalHKDRep combine ~(K1 hkd_f) ~(K1 hkd_g) =
+      K1 <$> gbitraverseNormalHKDRep @hkt @f @g @h @(NormalHKD hkd hkt (t Exposed)) @(NormalHKD hkd hkt (t f)) @(NormalHKD hkd hkt (t g)) @(NormalHKD hkd hkt (t h)) combine hkd_f hkd_g
+
+instance
+    ( GBiTraversableNormalHKDRep hkt f g h (NormalHKDRep hkd hkt (t Exposed)) (NormalHKDRep hkd hkt (t f)) (NormalHKDRep hkd hkt (t g)) (NormalHKDRep hkd hkt (t h))
+    )
+  =>
+    GBiTraversableNormalHKDRep (hkt :: (Type -> Type) -> Type -> Type) f g h (NormalHKD hkd hkt (t Exposed)) (NormalHKD hkd hkt (t f)) (NormalHKD hkd hkt (t g)) (NormalHKD hkd hkt (t h))
+  where
+    {-# INLINABLE gbitraverseNormalHKDRep #-}
+    gbitraverseNormalHKDRep combine ~(NormalHKD hkd_f) ~(NormalHKD hkd_g) =
+      NormalHKD <$> gbitraverseNormalHKDRep @hkt @f @g @h @(NormalHKDRep hkd hkt (t Exposed)) @(NormalHKDRep hkd hkt (t f)) @(NormalHKDRep hkd hkt (t g)) @(NormalHKDRep hkd hkt (t h)) combine hkd_f hkd_g
 
 --------------------------------------------------------------------------------
 
@@ -469,7 +505,7 @@ instance {-# OVERLAPPABLE #-} GTraversableHKD hkd hkt f g => TraversableHKD hkd 
 class
     ( IsNormalHKD hkd hkt f
     , IsNormalHKD hkd hkt g
-    , GTraversableNormalHKDRep hkt f g (NormalHKD hkd Exposed) (NormalHKD hkd f) (NormalHKD hkd g)
+    , GTraversableNormalHKDRep hkt f g (NormalHKDRep hkd hkt Exposed) (NormalHKDRep hkd hkt f) (NormalHKDRep hkd hkt g)
     )
   =>
     GTraversableHKD hkd hkt f g
@@ -483,7 +519,7 @@ class
 instance
     ( IsNormalHKD hkd hkt f
     , IsNormalHKD hkd hkt g
-    , GTraversableNormalHKDRep hkt f g (NormalHKD hkd Exposed) (NormalHKD hkd f) (NormalHKD hkd g)
+    , GTraversableNormalHKDRep hkt f g (NormalHKDRep hkd hkt Exposed) (NormalHKDRep hkd hkt f) (NormalHKDRep hkd hkt g)
     )
   =>
     GTraversableHKD hkd hkt f g
@@ -491,7 +527,7 @@ instance
     {-# INLINABLE gtraverseHKD #-}
     gtraverseHKD f (hkd_f :: hkd f) =
           fromNormalHKD @hkd @hkt @g @()
-      <$> gtraverseNormalHKDRep @hkt @f @g @(NormalHKD hkd Exposed) @(NormalHKD hkd f) @(NormalHKD hkd g)
+      <$> gtraverseNormalHKDRep @hkt @f @g @(NormalHKDRep hkd hkt Exposed) @(NormalHKDRep hkd hkt f) @(NormalHKDRep hkd hkt g)
             f
             (toNormalHKD @hkd @hkt @f @() hkd_f)
 
@@ -560,12 +596,44 @@ instance
     gtraverseNormalHKDRep f ~(K1 f_x) = K1 <$> f f_x
 
 instance
-    GTraversableNormalHKDRep hkt f g rep_exp rep_f rep_g
+    ( GTraversableNormalHKDRep hkt f g (NormalHKDRep hkd hkt Exposed) (NormalHKDRep hkd hkt f) (NormalHKDRep hkd hkt g)
+    )
   =>
-    GTraversableNormalHKDRep hkt f g (K1 ki (M1 mi mc rep_exp ())) (K1 ki (M1 mi mc rep_f ())) (K1 ki (M1 mi mc rep_g ()))
+    GTraversableNormalHKDRep (hkt :: (Type -> Type) -> Type -> Type) f g (K1 i (NormalHKD hkd hkt Exposed ())) (K1 i (NormalHKD hkd hkt f ())) (K1 i (NormalHKD hkd hkt g ()))
   where
     {-# INLINABLE gtraverseNormalHKDRep #-}
-    gtraverseNormalHKDRep f ~(K1 ~(M1 rep_f)) = K1 . M1 <$> gtraverseNormalHKDRep @hkt @f @g @rep_exp @rep_f @rep_g f rep_f
+    gtraverseNormalHKDRep f ~(K1 hkd_f) =
+      K1 <$> gtraverseNormalHKDRep @hkt @f @g @(NormalHKD hkd hkt Exposed) @(NormalHKD hkd hkt f) @(NormalHKD hkd hkt g) f hkd_f
+
+instance
+    ( GTraversableNormalHKDRep hkt f g (NormalHKDRep hkd hkt Exposed) (NormalHKDRep hkd hkt f) (NormalHKDRep hkd hkt g)
+    )
+  =>
+    GTraversableNormalHKDRep (hkt :: (Type -> Type) -> Type -> Type) f g (NormalHKD hkd hkt Exposed) (NormalHKD hkd hkt f) (NormalHKD hkd hkt g)
+  where
+    {-# INLINABLE gtraverseNormalHKDRep #-}
+    gtraverseNormalHKDRep f ~(NormalHKD hkd_f) =
+      NormalHKD <$> gtraverseNormalHKDRep @hkt @f @g @(NormalHKDRep hkd hkt Exposed) @(NormalHKDRep hkd hkt f) @(NormalHKDRep hkd hkt g) f hkd_f
+
+instance
+    ( GTraversableNormalHKDRep hkt f g (NormalHKDRep hkd hkt (t Exposed)) (NormalHKDRep hkd hkt (t f)) (NormalHKDRep hkd hkt (t g))
+    )
+  =>
+    GTraversableNormalHKDRep (hkt :: (Type -> Type) -> Type -> Type) f g (K1 i (NormalHKD hkd hkt (t Exposed) ())) (K1 i (NormalHKD hkd hkt (t f) ())) (K1 i (NormalHKD hkd hkt (t g) ()))
+  where
+    {-# INLINABLE gtraverseNormalHKDRep #-}
+    gtraverseNormalHKDRep f ~(K1 hkd_f) =
+      K1 <$> gtraverseNormalHKDRep @hkt @f @g @(NormalHKD hkd hkt (t Exposed)) @(NormalHKD hkd hkt (t f)) @(NormalHKD hkd hkt (t g)) f hkd_f
+
+instance
+    ( GTraversableNormalHKDRep hkt f g (NormalHKDRep hkd hkt (t Exposed)) (NormalHKDRep hkd hkt (t f)) (NormalHKDRep hkd hkt (t g))
+    )
+  =>
+    GTraversableNormalHKDRep (hkt :: (Type -> Type) -> Type -> Type) f g (NormalHKD hkd hkt (t Exposed)) (NormalHKD hkd hkt (t f)) (NormalHKD hkd hkt (t g))
+  where
+    {-# INLINABLE gtraverseNormalHKDRep #-}
+    gtraverseNormalHKDRep f ~(NormalHKD hkd_f) =
+      NormalHKD <$> gtraverseNormalHKDRep @hkt @f @g @(NormalHKDRep hkd hkt (t Exposed)) @(NormalHKDRep hkd hkt (t f)) @(NormalHKDRep hkd hkt (t g)) f hkd_f
 
 --------------------------------------------------------------------------------
 
