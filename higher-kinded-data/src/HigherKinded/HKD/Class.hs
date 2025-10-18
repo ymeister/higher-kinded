@@ -245,10 +245,10 @@ instance
     type NormalHKDRep f (K1 i (Exposed x)) (K1 i f_x) = K1 i (f x)
 
     {-# INLINABLE gtoNormalHKDRep #-}
-    gtoNormalHKDRep ~(K1 f_x) = K1 $ fromHKT @hkt @f @x f_x
+    gtoNormalHKDRep ~(K1 f_x) = K1 $ fromHK @hkt @f @x f_x
 
     {-# INLINABLE gfromNormalHKDRep #-}
-    gfromNormalHKDRep ~(K1 f_x) = K1 $ toHKT @hkt @f @x f_x
+    gfromNormalHKDRep ~(K1 f_x) = K1 $ toHK @hkt @f @x f_x
 
 instance
     IsNormalHKD hkd hkt f
@@ -608,7 +608,7 @@ transformHKD
   => (forall x. f x -> g x)
   -> f_hkd_f
   -> g_hkd_g
-transformHKD f = hoistHKT @hkt1 @f @g @(hkd g) f . fmapHKT @hkt1 @f (mapHKD @hkd @hkt2 f)
+transformHKD f = hoistHK @hkt1 @f @g @(hkd g) f . fmapHK @hkt1 @f (mapHKD @hkd @hkt2 f)
 
 --------------------------------------------------------------------------------
 

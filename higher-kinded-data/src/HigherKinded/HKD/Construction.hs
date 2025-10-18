@@ -17,7 +17,6 @@
 
 module HigherKinded.HKD.Construction where
 
-import Control.Lens (view)
 import Data.Kind
 import GHC.Generics
 
@@ -164,15 +163,14 @@ instance {-# OVERLAPPABLE #-}
     ( Applicative f
     , FromHKT hkt f inner
     , ToHKT hkt f inner
-    , Generic (hkt f inner)
-    , GHKD_ (K1 index inner) hkt f ~ K1 index (UnHKT (hkt f inner))
-    , Rep (hkt f inner) ~ (D1 d (C1 c (S1 s' (Rec0 x))))
+    , GHKD_ (K1 index inner) hkt f ~ K1 index (HKT (hkt f inner))
+    , IsHKT' (hkt f inner)
     )
   =>
     GConstructHKDRep (K1 index inner) hkt f
   where
     {-# INLINABLE gFromHKD #-}
-    gFromHKD = fmap K1 . fromHKT' @hkt @f @inner . view _UnHKT' . unK1
+    gFromHKD = fmap K1 . fromHKT @hkt @f @inner . toHKT' . unK1
 
     {-# INLINABLE gToHKD #-}
-    gToHKD = K1 . (view _HKT' . toHKT' @hkt @f @inner) . fmap unK1
+    gToHKD = K1 . (fromHKT' . toHKT @hkt @f @inner) . fmap unK1

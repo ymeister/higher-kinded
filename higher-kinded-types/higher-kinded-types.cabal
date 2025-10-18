@@ -74,6 +74,8 @@ library
     exposed-modules:  HigherKinded.HKT
                       HigherKinded.HKT.Base
                       HigherKinded.HKT.Class
+                      HigherKinded.HKT.Compose
+                      HigherKinded.HKT.Internal.Void
 
     -- Modules included in this library but not exported.
     -- other-modules:

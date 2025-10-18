@@ -6,6 +6,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
@@ -15,7 +16,19 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module HigherKinded.HKT.Base where
+module HigherKinded.HKT.Base
+  ( type ($~)
+  , Apply
+  , Applied(..)
+  , type (:$~)
+  , pattern App
+  , unApp
+  , fromApp
+  , toApp
+  , fmapApp
+  , hoistApp
+  , transformApp
+  ) where
 
 import Data.Functor.Compose
 import Data.Functor.Const
@@ -33,15 +46,19 @@ infixr 0 $~
 type ($~) :: (k1 -> k2) -> k1 -> k3
 type family ($~) f x where
   ($~) Identity x = x
+  --
   ($~) (Ap f) x = f $~ x
   ($~) (Compose f g) x = f $~ (g $~ x)
   ($~) (Const x) _ = x
   ($~) (Op x) y = y -> x
+  --
   ($~) (Applied f) x = f $~ x
+  ($~) (HKT' hkt f) x = HKT (hkt f x)
+  ($~) (ComposeHKT' hkt1 hkt2 (Compose f g)) x = ComposeHKT hkt1 hkt2 (Compose f g) x
+  --
   ($~) f x = f x
 
 type Apply f x = f $~ x
-
 
 
 newtype Applied f x = Applied { unApplied :: f $~ x }
@@ -49,61 +66,141 @@ newtype Applied f x = Applied { unApplied :: f $~ x }
 
 type (:$~) = Applied
 
+--
+-- | FromHKT instances
+--
 
 instance FromHKT Applied Identity x where
-  fromHKT' (Applied x) = Identity x
+  {-# INLINE fromHKT #-}
+  fromHKT (Applied x) = Identity x
+
+--
 
 instance (FromHKT Applied f x) => FromHKT Applied (Ap f) x where
-  fromHKT' (Applied x) = Ap $ (fromHKT' @Applied @f @x . Applied) $ x
+  {-# INLINE fromHKT #-}
+  fromHKT (Applied x) = Ap $ (fromHKT @Applied @f @x . Applied) $ x
 
 instance (Functor f, FromHKT Applied f (g $~ x), FromHKT Applied g x) => FromHKT Applied (Compose (f :: Type -> Type) (g :: Type -> Type)) x where
-  fromHKT' (Applied x) = Compose $ fmap (fromHKT' . Applied) $ (fromHKT' . Applied) $ x
+  {-# INLINE fromHKT #-}
+  fromHKT (Applied x) = Compose $ fmap (fromHKT . Applied) $ (fromHKT . Applied) $ x
 
 instance FromHKT Applied (Const x) a where
-  fromHKT' (Applied x) = Const x
+  {-# INLINE fromHKT #-}
+  fromHKT (Applied x) = Const x
 
 instance FromHKT Applied (Op x) y where
-  fromHKT' (Applied x) = Op x
+  {-# INLINE fromHKT #-}
+  fromHKT (Applied x) = Op x
+
+--
 
 instance FromHKT Applied (Applied f) x where
-  fromHKT' (Applied x) = Applied x
+  {-# INLINE fromHKT #-}
+  fromHKT (Applied x) = Applied x
+
+instance
+    ( (HKT' hkt f $~ x) ~ HKT (hkt f x)
+    )
+  =>
+    FromHKT Applied (HKT' hkt f) x
+  where
+    {-# INLINE fromHKT #-}
+    fromHKT = HKT' . unApplied
+
+instance
+    ( (ComposeHKT' hkt1 hkt2 (Compose f g) $~ x) ~ ComposeHKT hkt1 hkt2 (Compose f g) x
+    )
+  =>
+    FromHKT Applied (ComposeHKT' hkt1 hkt2 (Compose f g)) x
+  where
+    {-# INLINE fromHKT #-}
+    fromHKT = ComposeHKT' . unApplied
+
+--
 
 instance {-# OVERLAPPABLE #-} ((f $~ x) ~ (f x)) => FromHKT Applied f x where
-  fromHKT' (Applied x) = x
+  {-# INLINE fromHKT #-}
+  fromHKT (Applied x) = x
 
+--
+-- | 'ToHKT' instances
+--
 
 instance ToHKT Applied Identity x where
-  toHKT' (Identity x) = Applied x
+  {-# INLINE toHKT #-}
+  toHKT (Identity x) = Applied x
+
+--
 
 instance (ToHKT Applied f x) => ToHKT Applied (Ap f) x where
-  toHKT' (Ap f_x) = Applied $ (unApplied . toHKT' @Applied @f @x) $ f_x
+  {-# INLINE toHKT #-}
+  toHKT (Ap f_x) = Applied $ (unApplied . toHKT @Applied @f @x) $ f_x
 
 instance (Functor f, ToHKT Applied f (g $~ x), ToHKT Applied g x) => ToHKT Applied (Compose (f :: Type -> Type) (g :: Type -> Type)) x where
-  toHKT' (Compose x) = Applied $ unApplied . toHKT' $ fmap (unApplied . toHKT') x
+  {-# INLINE toHKT #-}
+  toHKT (Compose x) = Applied $ unApplied . toHKT $ fmap (unApplied . toHKT) x
 
 instance ToHKT Applied (Const x) a where
-  toHKT' (Const x) = Applied x
+  {-# INLINE toHKT #-}
+  toHKT (Const x) = Applied x
 
 instance ToHKT Applied (Op x) y where
-  toHKT' (Op x) = Applied x
+  {-# INLINE toHKT #-}
+  toHKT (Op x) = Applied x
+
+--
 
 instance ToHKT Applied (Applied f) x where
-  toHKT' (Applied x) = Applied x
+  {-# INLINE toHKT #-}
+  toHKT (Applied x) = Applied x
+
+instance
+    ( (HKT' hkt f $~ x) ~ HKT (hkt f x)
+    )
+  =>
+    ToHKT Applied (HKT' hkt f) x
+  where
+    {-# INLINE toHKT #-}
+    toHKT = Applied . unHKT'
+
+instance
+    ( (ComposeHKT' hkt1 hkt2 (Compose f g) $~ x) ~ ComposeHKT hkt1 hkt2 (Compose f g) x
+    )
+  =>
+    ToHKT Applied (ComposeHKT' hkt1 hkt2 (Compose f g)) x
+  where
+    {-# INLINE toHKT #-}
+    toHKT = Applied . unComposeHKT'
+
+--
 
 instance {-# OVERLAPPABLE #-} ((f $~ x) ~ (f x)) => ToHKT Applied f x where
-  toHKT' = Applied
+  {-# INLINE toHKT #-}
+  toHKT = Applied
 
+--
+-- | 'IsHKT'' instance
+--
+
+instance (FromHKT Applied f x, ToHKT Applied f x) => IsHKT' (Applied f x)
+
+--
+-- | Basic instances
+--
 
 instance
     ( Functor f
-    , HKT Applied f
+    , IsHKT Applied f
     )
   =>
     Functor (Applied f)
   where
-    fmap f = toHKT' . fmap f . fromHKT' @_ @f
+    {-# INLINE fmap #-}
+    fmap f = HKT . fmap f . unHKT
 
-
+--
+-- | Wrappers
+--
 
 pattern App
   :: forall (f :: Type -> Type) x f_x.
@@ -114,24 +211,29 @@ pattern App
 pattern App { unApp } <- (fromApp @f @x -> unApp) where
   App f_x = toApp @f @x f_x
 
+{-# INLINE fromApp #-}
 fromApp
   :: forall (f :: Type -> Type) x f_x.
      ( f_x ~$ (f :$~ x)
      )
   => f_x
   -> f x
-fromApp = fromHKT @Applied @f @x
+fromApp = fromHK @Applied @f @x
 
+{-# INLINE toApp #-}
 toApp
   :: forall (f :: Type -> Type) x f_x.
      ( f_x ~$ (f :$~ x)
      )
   => f x
   -> f_x
-toApp = toHKT @Applied @f @x
+toApp = toHK @Applied @f @x
 
+--
+-- | Transformers
+--
 
-
+{-# INLINE fmapApp #-}
 fmapApp
   :: forall x y f f_x f_y.
      ( Functor f
@@ -141,8 +243,9 @@ fmapApp
   => (x -> y)
   -> f_x
   -> f_y
-fmapApp = fmapHKT @Applied @f @x @y
+fmapApp = fmapHK @Applied @f @x @y
 
+{-# INLINE hoistApp #-}
 hoistApp
   :: forall
        x
@@ -155,8 +258,9 @@ hoistApp
   => (forall a. f a -> g a)
   -> f_x
   -> g_x
-hoistApp = hoistHKT @Applied @f @g @x
+hoistApp = hoistHK @Applied @f @g @x
 
+{-# INLINE transformApp #-}
 transformApp
   :: forall
        x y
@@ -169,4 +273,4 @@ transformApp
   => (f x -> g y)
   -> f_x
   -> g_y
-transformApp = transformHKT @Applied @f @g @x @y
+transformApp = transformHK @Applied @f @g @x @y

@@ -73,7 +73,7 @@ type family GHKD_ structureRep hkt f = (res :: Type -> Type) where
   GHKD_ (K1 index (SubHKD subHKD)) hkt f = K1 index (HKD subHKD hkt f)
   GHKD_ (K1 index (t (SubHKD subHKD))) hkt f = K1 index (HKD (HKD subHKD Applied t) hkt f)
   GHKD_ (K1 index (Applied k t)) hkt f = GHKD_ (K1 index (k $~ t)) hkt f
-  GHKD_ (K1 index value) hkt f = K1 index (UnHKT (hkt f value))
+  GHKD_ (K1 index value) hkt f = K1 index (HKT (hkt f value))
 
 --------------------------------------------------------------------------------
 

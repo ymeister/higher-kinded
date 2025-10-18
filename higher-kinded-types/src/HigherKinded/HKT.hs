@@ -3,3 +3,4 @@ module HigherKinded.HKT
   ) where
 
 import HigherKinded.HKT.Class as X
+import HigherKinded.HKT.Compose as X

@@ -1,12 +1,18 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE ExplicitForAll #-}
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
@@ -15,154 +21,293 @@
 {-# LANGUAGE UndecidableSuperClasses #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module HigherKinded.HKT.Class where
+module HigherKinded.HKT.Class
+  (
+  -- * Core
+    IsHKT
+  , FromHKT(..)
+  , ToHKT(..)
+  , pattern HKT
+  , unHKT
+
+  -- * HKT wrapping/unwrapping
+  , type (~$)
+  , IsHKT'(..)
+  , FromHKT'
+  , ToHKT'
+  , _UnHKT
+  , fromHKT'
+  , toHKT'
+  , HKT'(..)
+  , GIsHKT'(..)
+
+  -- * HK wrapping/unwrapping
+  , pattern HK
+  , fromHK
+  , toHK
+
+  -- * HK transformers
+  , fmapHK
+  , hoistHK
+  , transformHK
+
+  -- * HKT isomorphism
+  , IsoHKT
+  , IsoHKT'
+  , isoHK
+  ) where
 
 import Control.Lens
-import Data.Monoid (Ap(..))
 import Data.Kind
+import Data.Monoid (Ap(..))
 import GHC.Generics hiding (from, to)
 import GHC.Generics qualified as G
 
+import HigherKinded.HKT.Internal.Void
 
+--
+-- | Core
+--
 
-class (forall x. ToHKT t f x, forall x. FromHKT t f x) => HKT t f
-instance (forall x. ToHKT t f x, forall x. FromHKT t f x) => HKT t f
+class (forall x. ToHKT hkt f x, forall x. FromHKT hkt f x) => IsHKT hkt f
+instance (forall x. ToHKT hkt f x, forall x. FromHKT hkt f x) => IsHKT hkt f
 
-class FromHKT t f a where
-  fromHKT' :: t f a -> f a
+class FromHKT hkt f x where
+  fromHKT :: hkt f x -> f x
 
-class ToHKT t f a where
-  toHKT' :: f a -> t f a
-
-
-instance FromHKT Ap f a where
-  fromHKT' = getAp
-
-instance ToHKT Ap f a where
-  toHKT' = Ap
-
-
-
-class HKT' t_f_a where
-  type UnHKT t_f_a
-  _HKT' :: Iso' t_f_a (UnHKT t_f_a)
-
-instance {-# OVERLAPPABLE #-}
-    ( Generic t_f_a
-    , UnHKT t_f_a ~ GUnHKT (Rep t_f_a)
-    , Rep t_f_a ~ (D1 d (C1 c (S1 s' (Rec0 x))))
-    )
-  =>
-    HKT' (t_f_a :: Type)
-  where
-    type UnHKT t_f_a = GUnHKT (Rep t_f_a)
-    {-# INLINABLE _HKT' #-}
-    _HKT' = iso G.from G.to . iso remitter reviewer
-        where
-          remitter (M1 (M1 (M1 (K1 x)))) = x
-          reviewer x = M1 (M1 (M1 (K1 x)))
-
-type family GUnHKT rep where
-  GUnHKT (D1 d (C1 c (S1 s' (Rec0 x)))) = x
-  GUnHKT (C1 c (S1 s' (Rec0 x))) = x
-  GUnHKT (S1 s' (Rec0 x)) = x
-  GUnHKT (Rec0 x) = x
-
-_UnHKT' :: HKT' t_f_a => Iso' (UnHKT t_f_a) t_f_a
-_UnHKT' = from _HKT'
-
-pattern HKT'
-  :: forall t f a f_a.
-     ( f_a ~$ t f a
-     )
-  => f a
-  -> t f a
-pattern HKT' unHKT <- (fromHKT' @t @f @a -> unHKT) where
-  HKT' unHKT = toHKT' @t @f @a unHKT
-
-
-
-class (IsHKT t_f_a, HKT' t_f_a, f_a ~ UnHKT t_f_a) => (~$) f_a t_f_a
-instance (IsHKT t_f_a, HKT' t_f_a, f_a ~ UnHKT t_f_a) => (~$) f_a t_f_a
-
-type family IsHKT t_f_a = r | r -> t_f_a where
-  IsHKT (t f a) = (FromHKT t f a, ToHKT t f a)
-
-
+class ToHKT hkt f x where
+  toHKT :: f x -> hkt f x
 
 pattern HKT
-  :: forall t f a f_a.
-     ( f_a ~$ t f a
+  :: forall hkt f x.
+     ( FromHKT hkt f x
+     , ToHKT hkt f x
      )
-  => f a
-  -> f_a
-pattern HKT unHKT <- (fromHKT @t @f @a -> unHKT) where
-  HKT unHKT = toHKT @t @f @a unHKT
+  => f x
+  -> hkt f x
+pattern HKT { unHKT } <- (fromHKT @hkt @f @x -> unHKT) where
+  HKT = toHKT @hkt @f @x
 
-fromHKT
-  :: forall t f a f_a.
-     ( f_a ~$ t f a
+--
+-- | Basic 'FromHKT'/'ToHKT' instances
+--
+
+instance FromHKT Void2 f x where
+  {-# INLINE fromHKT #-}
+  fromHKT = undefined
+
+instance ToHKT Void2 f x where
+  {-# INLINE toHKT #-}
+  toHKT = undefined
+
+--
+
+instance FromHKT Ap f x where
+  {-# INLINE fromHKT #-}
+  fromHKT = getAp
+
+instance ToHKT Ap f x where
+  {-# INLINE toHKT #-}
+  toHKT = Ap
+
+--
+-- | HKT wrapping/unwrapping
+--
+
+class (IsHKT' hkt_f_x, f_x ~ HKT hkt_f_x) => (~$) f_x hkt_f_x
+instance (IsHKT' hkt_f_x, f_x ~ HKT hkt_f_x) => (~$) f_x hkt_f_x
+
+--
+
+class (FromHKT' hkt_f_x, ToHKT' hkt_f_x) => IsHKT' hkt_f_x where
+  type HKT hkt_f_x
+  type HKT hkt_f_x = GHKT (Rep hkt_f_x)
+
+  _HKT :: Iso' hkt_f_x (HKT hkt_f_x)
+
+  {-# INLINE _HKT #-}
+  default _HKT
+    :: ( Generic hkt_f_x
+       , GIsHKT' (Rep hkt_f_x)
+       , HKT hkt_f_x ~ GHKT (Rep hkt_f_x)
+       )
+    => Iso' hkt_f_x (HKT hkt_f_x)
+  _HKT = iso G.from G.to . _GHKT
+
+type family FromHKT' hkt_f_x = r | r -> hkt_f_x where
+  FromHKT' (hkt f x) = FromHKT hkt f x
+
+type family ToHKT' hkt_f_x = r | r -> hkt_f_x where
+  ToHKT' (hkt f x) = ToHKT hkt f x
+
+{-# INLINE _UnHKT #-}
+_UnHKT :: IsHKT' hkt_f_x => Iso' (HKT hkt_f_x) hkt_f_x
+_UnHKT = from _HKT
+
+{-# INLINE fromHKT' #-}
+fromHKT' :: IsHKT' hkt_f_x => hkt_f_x -> HKT hkt_f_x
+fromHKT' = view _HKT
+
+{-# INLINE toHKT' #-}
+toHKT' :: IsHKT' hkt_f_x => HKT hkt_f_x -> hkt_f_x
+toHKT' = view _UnHKT
+
+--
+
+newtype HKT' hkt (f :: Type -> Type) x = HKT' { unHKT' :: HKT (hkt f x) }
+  deriving stock (Generic)
+
+instance (FromHKT hkt f x, IsHKT' (hkt f x)) => FromHKT (HKT' hkt) f x where
+  {-# INLINE fromHKT #-}
+  fromHKT = fromHKT @hkt @f @x . toHKT' @(hkt f x) . unHKT'
+
+instance (ToHKT hkt f x, IsHKT' (hkt f x)) => ToHKT (HKT' hkt) f x where
+  {-# INLINE toHKT #-}
+  toHKT = HKT' . fromHKT' @(hkt f x) . toHKT @hkt @f @x
+
+instance IsHKT' (hkt f x) => IsHKT' (HKT' hkt f x) where
+  type HKT (HKT' hkt f x) = HKT (hkt f x)
+
+  {-# INLINE _HKT #-}
+  _HKT = iso (unHKT') (HKT')
+
+instance
+    ( Functor f
+    , IsHKT (HKT' hkt) f
+    )
+  =>
+    Functor (HKT' hkt f)
+  where
+    {-# INLINE fmap #-}
+    fmap f = HKT . fmap f . unHKT
+
+--
+-- | Generic 'IsHKT'' instance
+--
+
+class GIsHKT' rep_hkt_f_x where
+  type GHKT rep_hkt_f_x :: Type
+  _GHKT :: Iso' (rep_hkt_f_x p) (GHKT rep_hkt_f_x)
+
+instance GIsHKT' x => GIsHKT' (M1 i c x) where
+  type GHKT (M1 i c x) = GHKT x
+
+  {-# INLINE _GHKT #-}
+  _GHKT = iso (unM1) (M1) . _GHKT
+
+instance GIsHKT' (K1 i x) where
+  type GHKT (K1 i x) = x
+
+  {-# INLINE _GHKT #-}
+  _GHKT = iso (unK1) (K1)
+
+--
+-- | Basic 'IsHKT'' instances
+--
+
+instance IsHKT' (Void2 (f :: Type -> Type) x) where
+  type HKT (Void2 f x) = Void
+
+  {-# INLINE _HKT #-}
+  _HKT = undefined
+
+instance IsHKT' (Ap f x)
+
+--
+-- | HK wrapping/unwrapping
+--
+
+pattern HK
+  :: forall hkt f x f_x.
+     ( f_x ~$ hkt f x
      )
-  => f_a
-  -> f a
-fromHKT = fromHKT' @t @f @a . view _UnHKT'
+  => f x
+  -> f_x
+pattern HK unHK <- (fromHK @hkt @f @x -> unHK) where
+  HK unHK = toHK @hkt @f @x unHK
 
-toHKT
-  :: forall t f a f_a.
-     ( f_a ~$ t f a
+{-# INLINE fromHK #-}
+fromHK
+  :: forall hkt f x f_x.
+     ( f_x ~$ hkt f x
      )
-  => f a
-  -> f_a
-toHKT = view _HKT' . toHKT' @t @f @a
+  => f_x
+  -> f x
+fromHK = unHKT @hkt @f @x . toHKT'
 
-
-
-class (HKT t1 f, HKT t2 f, forall x. HKTIso' t1 t2 f x) => HKTIso t1 t2 f
-instance (HKT t1 f, HKT t2 f, forall x. HKTIso' t1 t2 f x) => HKTIso t1 t2 f
-
-class (HKT t1 f, HKT t2 f, forall f_x_1 f_x_2. (f_x_1 ~$ t1 f x, f_x_2 ~$ t2 f x) => f_x_1 ~ f_x_2) => HKTIso' t1 t2 f x
-instance (HKT t1 f, HKT t2 f, forall f_x_1 f_x_2. (f_x_1 ~$ t1 f x, f_x_2 ~$ t2 f x) => f_x_1 ~ f_x_2) => HKTIso' t1 t2 f x
-
-isoHKT
-  :: forall
-      t1 (t2 :: (Type -> Type) -> Type -> Type) f a f_a_1 f_a_2.
-     ( f_a_1 ~$ t1 f a
-     , f_a_2 ~$ t2 f a
+{-# INLINE toHK #-}
+toHK
+  :: forall hkt f x f_x.
+     ( f_x ~$ hkt f x
      )
-  => f_a_1
-  -> f_a_2
-isoHKT = toHKT @t2 @f @a . fromHKT @t1 @f @a
+  => f x
+  -> f_x
+toHK = fromHKT' . HKT @hkt @f @x
 
+--
+-- | HK transformers
+--
 
-
-
-fmapHKT
-  :: forall t f a b f_a f_b.
+{-# INLINE fmapHK #-}
+fmapHK
+  :: forall hkt f x y f_x f_y.
      ( Functor f
-     , f_a ~$ t f a
-     , f_b ~$ t f b
+     , f_x ~$ hkt f x
+     , f_y ~$ hkt f y
      )
-  => (a -> b)
-  -> f_a
-  -> f_b
-fmapHKT f = toHKT @t . fmap @f f . fromHKT @t
+  => (x -> y)
+  -> f_x
+  -> f_y
+fmapHK f = toHK @hkt . fmap @f f . fromHK @hkt
 
-hoistHKT
-  :: forall (t :: (Type -> Type) -> Type -> Type) f g a f_a g_a.
-     ( f_a ~$ t f a
-     , g_a ~$ t g a
+{-# INLINE hoistHK #-}
+hoistHK
+  :: forall (hkt :: (Type -> Type) -> Type -> Type) f g x f_x g_x.
+     ( f_x ~$ hkt f x
+     , g_x ~$ hkt g x
      )
-  => (forall x. f x -> g x)
-  -> f_a
-  -> g_a
-hoistHKT f = toHKT @t @g @a . f . fromHKT @t @f @a
+  => (forall a. f a -> g a)
+  -> f_x
+  -> g_x
+hoistHK f = toHK @hkt @g @x . f . fromHK @hkt @f @x
 
-transformHKT
-  :: forall (t :: (Type -> Type) -> Type -> Type) f g a b f_a g_b.
-     ( f_a ~$ t f a
-     , g_b ~$ t g b
+{-# INLINE transformHK #-}
+transformHK
+  :: forall (hkt :: (Type -> Type) -> Type -> Type) f g x y f_x g_y.
+     ( f_x ~$ hkt f x
+     , g_y ~$ hkt g y
      )
-  => (f a -> g b)
-  -> f_a
-  -> g_b
-transformHKT f = toHKT @t @g @b . f . fromHKT @t @f @a
+  => (f x -> g y)
+  -> f_x
+  -> g_y
+transformHK f = toHK @hkt @g @y . f . fromHK @hkt @f @x
+
+--
+-- | HKT isomorphism
+--
+
+class (IsHKT hkt1 f, IsHKT hkt2 f, forall x. IsoHKT' hkt1 hkt2 f x) => IsoHKT hkt1 hkt2 f
+instance (IsHKT hkt1 f, IsHKT hkt2 f, forall x. IsoHKT' hkt1 hkt2 f x) => IsoHKT hkt1 hkt2 f
+
+class (IsHKT hkt1 f, IsHKT hkt2 f, forall f_x_1 f_x_2. (f_x_1 ~$ hkt1 f x, f_x_2 ~$ hkt2 f x) => f_x_1 ~ f_x_2) => IsoHKT' hkt1 hkt2 f x
+instance (IsHKT hkt1 f, IsHKT hkt2 f, forall f_x_1 f_x_2. (f_x_1 ~$ hkt1 f x, f_x_2 ~$ hkt2 f x) => f_x_1 ~ f_x_2) => IsoHKT' hkt1 hkt2 f x
+
+{-# INLINE isoHK #-}
+isoHK
+  :: forall hkt1 (hkt2 :: (Type -> Type) -> Type -> Type) f x f_x_1 f_x_2.
+     ( f_x_1 ~$ hkt1 f x
+     , f_x_2 ~$ hkt2 f x
+     )
+  => f_x_1
+  -> f_x_2
+isoHK = toHK @hkt2 @f @x . fromHK @hkt1 @f @x
+
+--
+-- | Void 'IsoHKT'/'IsoHKT'' instances
+--
+
+instance (IsHKT hkt2 f, forall x. IsoHKT' Void2 hkt2 f x) => IsoHKT Void2 hkt2 f
+instance (IsHKT hkt1 f, forall x. IsoHKT' hkt1 Void2 f x) => IsoHKT hkt1 Void2 f
+
+instance (IsHKT hkt2 f, forall f_x_1 f_x_2. (f_x_1 ~$ Void2 f x, f_x_2 ~$ hkt2 f x) => f_x_1 ~ f_x_2) => IsoHKT' Void2 hkt2 f x
+instance (IsHKT hkt1 f, forall f_x_1 f_x_2. (f_x_1 ~$ hkt1 f x, f_x_2 ~$ Void2 f x) => f_x_1 ~ f_x_2) => IsoHKT' hkt1 Void2 f x
