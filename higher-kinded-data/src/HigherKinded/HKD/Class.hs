@@ -768,3 +768,12 @@ instance HKDFieldsHaveF c t f =>
     GHKDFieldsHave c (K1 i (t (f Exposed))) (K1 i (t (f (Dict c)))) where
   {-# INLINABLE gWithConstrainedFields #-}
   gWithConstrainedFields _ _ = K1 (G.to (gWithConstrainedFields (Proxy @c) (Proxy @(Rep (t (f Exposed))))))
+
+--------------------------------------------------------------------------------
+
+type DefaultHKD :: ((Type -> Type) -> Type) -> (Type -> Type) -> k
+type family DefaultHKD hkd def where
+  DefaultHKD hkd def = hkd def
+  DefaultHKD hkd _ = hkd
+
+--------------------------------------------------------------------------------
