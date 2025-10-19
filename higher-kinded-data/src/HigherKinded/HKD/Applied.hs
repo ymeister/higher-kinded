@@ -8,22 +8,22 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module HigherKinded.HKD.Base
-  ( module HigherKinded.HKD.Base
-  , module HigherKinded.HKT.Base
+module HigherKinded.HKD.Applied
+  ( module HigherKinded.HKD.Applied
+  , module HigherKinded.HKT.Applied
   ) where
 
 import HigherKinded.HKD.Class
 import HigherKinded.HKD.Construction
 import HigherKinded.HKD.Generic
 import HigherKinded.HKT
-import HigherKinded.HKT.Base
+import HigherKinded.HKT.Applied
 
 
 
-type (|>) structure = HKD structure Applied
+type (|~>) structure = HKD structure Applied
 
-type F structure = (|>) structure
+type F structure = (|~>) structure
 
 pattern F
   :: forall structure f.
@@ -41,9 +41,9 @@ bitraverseF
      , BiTraversableHKD (F structure) Applied f g h
      )
   => (forall x. f x -> g x -> t (h x))
-  -> structure |> f
-  -> structure |> g
-  -> t (structure |> h)
+  -> structure |~> f
+  -> structure |~> g
+  -> t (structure |~> h)
 bitraverseF = bitraverseApp @(F structure) @f @g @h
 
 zipF
@@ -51,9 +51,9 @@ zipF
      ( ZippableHKD (F structure) Applied f g h
      )
   => (forall a. f a -> g a -> h a)
-  -> structure |> f
-  -> structure |> g
-  -> structure |> h
+  -> structure |~> f
+  -> structure |~> g
+  -> structure |~> h
 zipF = zipApp @(F structure) @f @g @h
 
 traverseF
@@ -62,8 +62,8 @@ traverseF
      , TraversableHKD (F structure) Applied f g
      )
   => (forall x. f x -> t (g x))
-  -> structure |> f
-  -> t (structure |> g)
+  -> structure |~> f
+  -> t (structure |~> g)
 traverseF = traverseApp @(F structure) @f @g
 
 mapF
@@ -71,8 +71,8 @@ mapF
      ( FunctorHKD (F structure) Applied f g
      )
   => (forall x. f x -> g x)
-  -> structure |> f
-  -> structure |> g
+  -> structure |~> f
+  -> structure |~> g
 mapF = mapApp @(F structure) @f @g
 
 pureF
@@ -80,7 +80,7 @@ pureF
      ( FunctorHKD (F structure) Applied f f
      )
   => (forall a. f a)
-  -> structure |> f
+  -> structure |~> f
 pureF = pureApp @(F structure) @f
 
 

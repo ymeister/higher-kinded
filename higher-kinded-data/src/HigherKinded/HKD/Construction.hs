@@ -21,7 +21,7 @@ import Data.Kind
 import GHC.Generics
 
 import HigherKinded.HKT
-import HigherKinded.HKT.Base
+import HigherKinded.HKT.Applied
 
 import HigherKinded.HKD.Generic
 
@@ -147,17 +147,17 @@ instance
 
 instance
     ( Functor f
-    , GConstructHKDRep (K1 index (k $~ t)) hkt f
-    , GHKD_ (K1 index (Applied k t)) hkt f ~ GHKD_ (K1 index (k $~ t)) hkt f
+    , GConstructHKDRep (K1 index (k $~> t)) hkt f
+    , GHKD_ (K1 index (Applied k t)) hkt f ~ GHKD_ (K1 index (k $~> t)) hkt f
     )
   =>
     GConstructHKDRep (K1 index (Applied k t)) hkt f
   where
     {-# INLINABLE gFromHKD #-}
-    gFromHKD = fmap (K1 . Applied . unK1) . gFromHKD @(K1 index (k $~ t)) @hkt @f
+    gFromHKD = fmap (K1 . Applied . unK1) . gFromHKD @(K1 index (k $~> t)) @hkt @f
 
     {-# INLINABLE gToHKD #-}
-    gToHKD = gToHKD @(K1 index (k $~ t)) @hkt @f . fmap (K1 . unApplied . unK1)
+    gToHKD = gToHKD @(K1 index (k $~> t)) @hkt @f . fmap (K1 . unApplied . unK1)
 
 instance {-# OVERLAPPABLE #-}
     ( Functor f

@@ -9,6 +9,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -32,6 +33,7 @@ module HigherKinded.HKT.Class
 
   -- * HKT wrapping/unwrapping
   , type (~$)
+  , type ($~)
   , IsHKT'(..)
   , FromHKT'
   , ToHKT'
@@ -72,10 +74,10 @@ import HigherKinded.HKT.Internal.Void
 class (forall x. ToHKT hkt f x, forall x. FromHKT hkt f x) => IsHKT hkt f
 instance (forall x. ToHKT hkt f x, forall x. FromHKT hkt f x) => IsHKT hkt f
 
-class FromHKT hkt f x where
+class FromHKT (hkt :: (Type -> Type) -> Type -> Type) (f :: Type -> Type) (x :: Type) where
   fromHKT :: hkt f x -> f x
 
-class ToHKT hkt f x where
+class ToHKT (hkt :: (Type -> Type) -> Type -> Type) (f :: Type -> Type) (x :: Type) where
   toHKT :: f x -> hkt f x
 
 pattern HKT
@@ -117,9 +119,13 @@ instance ToHKT Ap f x where
 class (IsHKT' hkt_f_x, f_x ~ HKT hkt_f_x) => (~$) f_x hkt_f_x
 instance (IsHKT' hkt_f_x, f_x ~ HKT hkt_f_x) => (~$) f_x hkt_f_x
 
+infixr 0 $~
+type family ($~) hkt_f x where
+  ($~) (hkt f) x = HKT (hkt f x)
+
 --
 
-class (FromHKT' hkt_f_x, ToHKT' hkt_f_x) => IsHKT' hkt_f_x where
+class (FromHKT' hkt_f_x, ToHKT' hkt_f_x) => IsHKT' (hkt_f_x :: Type) where
   type HKT hkt_f_x
   type HKT hkt_f_x = GHKT (Rep hkt_f_x)
 
@@ -154,7 +160,8 @@ toHKT' = view _UnHKT
 
 --
 
-newtype HKT' hkt (f :: Type -> Type) x = HKT' { unHKT' :: HKT (hkt f x) }
+newtype HKT' (hkt :: (Type -> Type) -> Type -> Type) (f :: Type -> Type) (x :: Type)
+  = HKT' { unHKT' :: HKT (hkt f x) }
   deriving stock (Generic)
 
 instance (FromHKT hkt f x, IsHKT' (hkt f x)) => FromHKT (HKT' hkt) f x where
@@ -205,20 +212,20 @@ instance GIsHKT' (K1 i x) where
 -- | Basic 'IsHKT'' instances
 --
 
-instance IsHKT' (Void2 (f :: Type -> Type) x) where
+instance IsHKT' (Void2 (f :: Type -> Type) (x :: Type)) where
   type HKT (Void2 f x) = Void
 
   {-# INLINE _HKT #-}
   _HKT = undefined
 
-instance IsHKT' (Ap f x)
+instance IsHKT' (Ap (f :: Type -> Type) (x :: Type))
 
 --
 -- | HK wrapping/unwrapping
 --
 
 pattern HK
-  :: forall hkt f x f_x.
+  :: forall hkt (f :: Type -> Type) x f_x.
      ( f_x ~$ hkt f x
      )
   => f x
@@ -228,7 +235,7 @@ pattern HK unHK <- (fromHK @hkt @f @x -> unHK) where
 
 {-# INLINE fromHK #-}
 fromHK
-  :: forall hkt f x f_x.
+  :: forall hkt (f :: Type -> Type) x f_x.
      ( f_x ~$ hkt f x
      )
   => f_x
@@ -237,7 +244,7 @@ fromHK = unHKT @hkt @f @x . toHKT'
 
 {-# INLINE toHK #-}
 toHK
-  :: forall hkt f x f_x.
+  :: forall hkt (f :: Type -> Type) x f_x.
      ( f_x ~$ hkt f x
      )
   => f x
@@ -250,7 +257,7 @@ toHK = fromHKT' . HKT @hkt @f @x
 
 {-# INLINE fmapHK #-}
 fmapHK
-  :: forall hkt f x y f_x f_y.
+  :: forall hkt (f :: Type -> Type) x y f_x f_y.
      ( Functor f
      , f_x ~$ hkt f x
      , f_y ~$ hkt f y

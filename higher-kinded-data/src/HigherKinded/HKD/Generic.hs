@@ -52,10 +52,18 @@ import Test.QuickCheck.Function (Function (..), functionMap)
 #endif
 
 import HigherKinded.HKT
-import HigherKinded.HKT.Base
+import HigherKinded.HKT.Applied
 
 import HigherKinded.HKD.Class
 
+
+
+type (|~) :: Type -> k1 -> k2
+type family (|~) structure hkt = r | r -> structure hkt where
+  (|~) structure (hkt f) = (structure |~~ hkt) f
+  (|~) structure hkt = structure |~~ hkt
+
+type (|~~) structure hkt = HKD structure (HKT' hkt)
 
 
 type HKD :: Type -> ((Type -> Type) -> Type -> Type) -> (Type -> Type) -> Type
@@ -72,7 +80,7 @@ type family GHKD_ structureRep hkt f = (res :: Type -> Type) where
   GHKD_ (left :+: right) hkt f = GHKD_ left hkt f :+: GHKD_ right hkt f
   GHKD_ (K1 index (NestedHKD subHKD)) hkt f = K1 index (HKD subHKD hkt f)
   GHKD_ (K1 index (t (NestedHKD subHKD))) hkt f = K1 index (HKD (HKD subHKD Applied t) hkt f)
-  GHKD_ (K1 index (Applied k t)) hkt f = GHKD_ (K1 index (k $~ t)) hkt f
+  GHKD_ (K1 index (Applied k t)) hkt f = GHKD_ (K1 index (k $~> t)) hkt f
   GHKD_ (K1 index value) hkt f = K1 index (HKT (hkt f value))
 
 --------------------------------------------------------------------------------
