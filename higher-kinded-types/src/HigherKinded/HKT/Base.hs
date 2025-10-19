@@ -19,8 +19,13 @@
 module HigherKinded.HKT.Base
   ( type ($~)
   , Apply
+
+  , type ($~~)
+  , ApplyHKT
+
   , Applied(..)
   , type (:$~)
+
   , pattern App
   , unApp
   , fromApp
@@ -60,6 +65,12 @@ type family ($~) f x where
   ($~) f x = f x
 
 type Apply f x = f $~ x
+
+
+infixr 0 $~~
+type family ($~~) hkt_f x where
+  ($~~) (hkt f) x = HKT' hkt f $~ x
+type ApplyHKT hkt_f x = ($~~) hkt_f x
 
 
 newtype Applied f x = Applied { unApplied :: f $~ x }
