@@ -289,24 +289,25 @@ class
       (hkt1 :: (Type -> Type) -> Type -> Type)
       (hkt2 :: (Type -> Type) -> Type -> Type)
       (f :: Type -> Type)
+      (g :: Type -> Type)
   where
-    isoHKD :: hkd1 f -> hkd2 f
+    isoHKD :: hkd1 f -> hkd2 g
 
     {-# INLINABLE isoHKD #-}
     default isoHKD
       :: ( IsNormalHKD hkd1 hkt1 f
-         , IsNormalHKD hkd2 hkt2 f
-         , NormalHKDRep hkd1 hkt1 f ~ NormalHKDRep hkd2 hkt2 f
+         , IsNormalHKD hkd2 hkt2 g
+         , NormalHKDRep hkd1 hkt1 f ~ NormalHKDRep hkd2 hkt2 g
          )
-      => hkd1 f -> hkd2 f
-    isoHKD = fromNormalHKD @hkd2 @hkt2 @f @() . toNormalHKD @hkd1 @hkt1 @f @()
+      => hkd1 f -> hkd2 g
+    isoHKD = fromNormalHKD @hkd2 @hkt2 @g @() . toNormalHKD @hkd1 @hkt1 @f @()
 
 instance {-# OVERLAPPABLE #-}
     ( IsNormalHKD hkd1 hkt1 f
-    , IsNormalHKD hkd2 hkt2 f
-    , NormalHKDRep hkd1 hkt1 f ~ NormalHKDRep hkd2 hkt2 f
+    , IsNormalHKD hkd2 hkt2 g
+    , NormalHKDRep hkd1 hkt1 f ~ NormalHKDRep hkd2 hkt2 g
     )
-  => IsoHKD hkd1 hkd2 hkt1 hkt2 f
+  => IsoHKD hkd1 hkd2 hkt1 hkt2 f g
 
 --------------------------------------------------------------------------------
 
@@ -317,15 +318,16 @@ coerceHKD
        (hkd2 :: (Type -> Type) -> Type)
        (hkt1 :: (Type -> Type) -> Type -> Type)
        (hkt2 :: (Type -> Type) -> Type -> Type)
-       (f :: Type -> Type).
+       (f :: Type -> Type)
+       (g :: Type -> Type).
      ( IsNormalHKD hkd1 hkt1 f
-     , IsNormalHKD hkd2 hkt2 f
+     , IsNormalHKD hkd2 hkt2 g
      , Coercible
          (GNormalHKDRep hkt1 f (Rep (hkd1 Exposed)) (Rep (hkd1 f)) ())
-         (GNormalHKDRep hkt2 f (Rep (hkd2 Exposed)) (Rep (hkd2 f)) ())
+         (GNormalHKDRep hkt2 g (Rep (hkd2 Exposed)) (Rep (hkd2 g)) ())
      )
-  => hkd1 f -> hkd2 f
-coerceHKD = fromNormalHKD @hkd2 @hkt2 @f @() . coerce . toNormalHKD @hkd1 @hkt1 @f @()
+  => hkd1 f -> hkd2 g
+coerceHKD = fromNormalHKD @hkd2 @hkt2 @g @() . coerce . toNormalHKD @hkd1 @hkt1 @f @()
 
 --------------------------------------------------------------------------------
 
