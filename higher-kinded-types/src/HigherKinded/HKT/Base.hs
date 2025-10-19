@@ -36,7 +36,7 @@ import Data.Functor.Contravariant
 import Data.Functor.Identity
 import Data.Kind
 import Data.Monoid (Ap(..))
-import GHC.Generics (Generic)
+import GHC.Generics
 
 import HigherKinded.HKT
 
@@ -49,6 +49,7 @@ type family ($~) f x where
   --
   ($~) (Ap f) x = f $~ x
   ($~) (Compose f g) x = f $~ (g $~ x)
+  ($~) (f :.: g) x = f $~ (g $~ x)
   ($~) (Const x) _ = x
   ($~) (Op x) y = y -> x
   --
@@ -83,6 +84,10 @@ instance (FromHKT Applied f x) => FromHKT Applied (Ap f) x where
 instance (Functor f, FromHKT Applied f (g $~ x), FromHKT Applied g x) => FromHKT Applied (Compose (f :: Type -> Type) (g :: Type -> Type)) x where
   {-# INLINE fromHKT #-}
   fromHKT (Applied x) = Compose $ fmap (fromHKT . Applied) $ (fromHKT . Applied) $ x
+
+instance (Functor f, FromHKT Applied f (g $~ x), FromHKT Applied g x) => FromHKT Applied ((f :: Type -> Type) :.: (g :: Type -> Type)) x where
+  {-# INLINE fromHKT #-}
+  fromHKT (Applied x) = Comp1 $ fmap (fromHKT . Applied) $ (fromHKT . Applied) $ x
 
 instance FromHKT Applied (Const x) a where
   {-# INLINE fromHKT #-}
@@ -139,6 +144,10 @@ instance (ToHKT Applied f x) => ToHKT Applied (Ap f) x where
 instance (Functor f, ToHKT Applied f (g $~ x), ToHKT Applied g x) => ToHKT Applied (Compose (f :: Type -> Type) (g :: Type -> Type)) x where
   {-# INLINE toHKT #-}
   toHKT (Compose x) = Applied $ unApplied . toHKT $ fmap (unApplied . toHKT) x
+
+instance (Functor f, ToHKT Applied f (g $~ x), ToHKT Applied g x) => ToHKT Applied ((f :: Type -> Type) :.: (g :: Type -> Type)) x where
+  {-# INLINE toHKT #-}
+  toHKT (Comp1 x) = Applied $ unApplied . toHKT $ fmap (unApplied . toHKT) x
 
 instance ToHKT Applied (Const x) a where
   {-# INLINE toHKT #-}
