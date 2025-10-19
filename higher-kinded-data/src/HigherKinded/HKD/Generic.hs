@@ -78,9 +78,10 @@ type family GHKD_ structureRep hkt f = (res :: Type -> Type) where
   GHKD_ (M1 index meta inner) hkt f = M1 index meta (GHKD_ inner hkt f)
   GHKD_ (left :*: right) hkt f = GHKD_ left hkt f :*: GHKD_ right hkt f
   GHKD_ (left :+: right) hkt f = GHKD_ left hkt f :+: GHKD_ right hkt f
-  GHKD_ (K1 index (NestedHKD subHKD)) hkt f = K1 index (HKD subHKD hkt f)
-  GHKD_ (K1 index (t (NestedHKD subHKD))) hkt f = K1 index (HKD (HKD subHKD Applied t) hkt f)
+  GHKD_ (K1 index (NestedHKD hkd)) hkt f = K1 index (HKD hkd hkt f)
+  GHKD_ (K1 index (t (NestedHKD hkd))) hkt f = K1 index (HKD (HKD hkd Applied t) hkt f)
   GHKD_ (K1 index (Applied k t)) hkt f = GHKD_ (K1 index (k $~> t)) hkt f
+  GHKD_ (K1 index (hkd (g :: Type -> Type))) hkt f = K1 index (HKD (hkd g) hkt f)
   GHKD_ (K1 index value) hkt f = K1 index (HKT (hkt f value))
 
 --------------------------------------------------------------------------------
