@@ -49,7 +49,7 @@ instance
   =>
     FromHKT (ComposeHKT' hkt1 hkt2) (Compose f g) x
   where
-    {-# INLINE fromHKT #-}
+    {-# INLINABLE fromHKT #-}
     fromHKT =
         Compose
       . fromHKT @hkt1 @f @(g x)
@@ -70,7 +70,7 @@ instance
   =>
     FromHKT (ComposeHKT' hkt1 hkt2) (f :.: g) x
   where
-    {-# INLINE fromHKT #-}
+    {-# INLINABLE fromHKT #-}
     fromHKT =
         Comp1
       . fromHKT @hkt1 @f @(g x)
@@ -88,7 +88,7 @@ instance {-# OVERLAPPABLE #-}
   =>
     FromHKT (ComposeHKT' hkt1 hkt2) f x
   where
-    {-# INLINE fromHKT #-}
+    {-# INLINABLE fromHKT #-}
     fromHKT = fromHKT @hkt1 @f @x . toHKT' @(hkt1 f x) . unComposeHKT'
 
 --
@@ -105,7 +105,7 @@ instance
   =>
     ToHKT (ComposeHKT' hkt1 hkt2) (Compose f g) x
   where
-    {-# INLINE toHKT #-}
+    {-# INLINABLE toHKT #-}
     toHKT =
         ComposeHKT'
       . fromHKT' @(hkt1 f (HKT (hkt2 g x)))
@@ -126,7 +126,7 @@ instance
   =>
     ToHKT (ComposeHKT' hkt1 hkt2) (f :.: g) x
   where
-    {-# INLINE toHKT #-}
+    {-# INLINABLE toHKT #-}
     toHKT =
         ComposeHKT'
       . fromHKT' @(hkt1 f (HKT (hkt2 g x)))
@@ -144,7 +144,7 @@ instance {-# OVERLAPPABLE #-}
   =>
     ToHKT (ComposeHKT' hkt1 hkt2) f x
   where
-    {-# INLINE toHKT #-}
+    {-# INLINABLE toHKT #-}
     toHKT = ComposeHKT' . fromHKT' @(hkt1 f x) . toHKT @hkt1 @f @x
 
 --
@@ -169,5 +169,5 @@ instance
   =>
     Functor (ComposeHKT' hkt1 hkt2 f)
   where
-    {-# INLINE fmap #-}
+    {-# INLINABLE fmap #-}
     fmap f = HKT . fmap f . unHKT

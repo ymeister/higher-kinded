@@ -158,7 +158,7 @@ newtype Beam' f a = Beam' { unBeam' :: Beam f a }
 --
 
 instance {-# OVERLAPPABLE #-} (Beam f a ~ Columnar f a, FromHKT Columnar' f a) => FromHKT Beam' f a where
-  {-# INLINE fromHKT #-}
+  {-# INLINABLE fromHKT #-}
   fromHKT = fromHKT @Columnar' @f @a . Columnar' . unBeam'
 
 --
@@ -166,7 +166,7 @@ instance {-# OVERLAPPABLE #-} (Beam f a ~ Columnar f a, FromHKT Columnar' f a) =
 --
 
 instance {-# OVERLAPPABLE #-} (Beam f a ~ Columnar f a, ToHKT Columnar' f a) => ToHKT Beam' f a where
-  {-# INLINE toHKT #-}
+  {-# INLINABLE toHKT #-}
   toHKT = Beam' . unColumnar' . toHKT @Columnar' @f @a
 
 --
@@ -188,7 +188,7 @@ pattern Beam
 pattern Beam { unBeam } <- (fromBeam @f @a -> unBeam) where
   Beam f_a = toBeam @f @a f_a
 
-{-# INLINE fromBeam #-}
+{-# INLINABLE fromBeam #-}
 fromBeam
   :: forall f a f_a.
      ( f_a ~$ Beam' f a
@@ -197,7 +197,7 @@ fromBeam
   -> f a
 fromBeam = fromHK @Beam' @f @a
 
-{-# INLINE toBeam #-}
+{-# INLINABLE toBeam #-}
 toBeam
   :: forall f a f_a.
      ( f_a ~$ Beam' f a
@@ -210,7 +210,7 @@ toBeam = toHK @Beam' @f @a
 -- | Beam transformers
 --
 
-{-# INLINE fmapBeam #-}
+{-# INLINABLE fmapBeam #-}
 fmapBeam
   :: forall x y f f_x f_y.
      ( Functor f
@@ -222,7 +222,7 @@ fmapBeam
   -> f_y
 fmapBeam = fmapHK @Beam' @f @x @y
 
-{-# INLINE hoistBeam #-}
+{-# INLINABLE hoistBeam #-}
 hoistBeam
   :: forall
        x
@@ -237,7 +237,7 @@ hoistBeam
   -> g_x
 hoistBeam = hoistHK @Beam' @f @g @x
 
-{-# INLINE transformBeam #-}
+{-# INLINABLE transformBeam #-}
 transformBeam
   :: forall
        x y
@@ -323,7 +323,7 @@ transformBeam' = transformHKD @hkd @Beam' @Beam' @f @g @f_hkd_f @f_hkd_g @g_hkd_
 
 deriving stock instance (Generic (Columnar' f a))
 
-{-# INLINE unColumnar' #-}
+{-# INLINABLE unColumnar' #-}
 unColumnar' :: Columnar' f a -> Columnar f a
 unColumnar' (Columnar' x) = x
 
@@ -332,11 +332,11 @@ unColumnar' (Columnar' x) = x
 --
 
 instance FromHKT Columnar' Identity a where
-  {-# INLINE fromHKT #-}
+  {-# INLINABLE fromHKT #-}
   fromHKT (Columnar' a) = Identity a
 
 instance {-# OVERLAPPABLE #-} (Columnar f a ~ f a) => FromHKT Columnar' f a where
-  {-# INLINE fromHKT #-}
+  {-# INLINABLE fromHKT #-}
   fromHKT (Columnar' a) = a
 
 --
@@ -344,11 +344,11 @@ instance {-# OVERLAPPABLE #-} (Columnar f a ~ f a) => FromHKT Columnar' f a wher
 --
 
 instance ToHKT Columnar' Identity a where
-  {-# INLINE toHKT #-}
+  {-# INLINABLE toHKT #-}
   toHKT (Identity a) = Columnar' a
 
 instance {-# OVERLAPPABLE #-} (Columnar f a ~ f a) => ToHKT Columnar' f a where
-  {-# INLINE toHKT #-}
+  {-# INLINABLE toHKT #-}
   toHKT = Columnar'
 
 --
@@ -368,7 +368,7 @@ instance
   =>
     Functor (Columnar' f)
   where
-    {-# INLINE fmap #-}
+    {-# INLINABLE fmap #-}
     fmap f = HKT . fmap f . unHKT
 
 
@@ -416,7 +416,7 @@ pattern Columnar
 pattern Columnar { unColumnar } <- (fromColumnar @f @a -> unColumnar) where
   Columnar f_a = toColumnar @f @a f_a
 
-{-# INLINE fromColumnar #-}
+{-# INLINABLE fromColumnar #-}
 fromColumnar
   :: forall f a f_a.
      ( f_a ~$ Columnar' f a
@@ -425,7 +425,7 @@ fromColumnar
   -> f a
 fromColumnar = fromHK @Columnar' @f @a
 
-{-# INLINE toColumnar #-}
+{-# INLINABLE toColumnar #-}
 toColumnar
   :: forall f a f_a.
      ( f_a ~$ Columnar' f a
@@ -438,7 +438,7 @@ toColumnar = toHK @Columnar' @f @a
 -- | Columnar transformers
 --
 
-{-# INLINE fmapColumnar #-}
+{-# INLINABLE fmapColumnar #-}
 fmapColumnar
   :: forall x y f f_x f_y.
      ( Functor f
@@ -450,7 +450,7 @@ fmapColumnar
   -> f_y
 fmapColumnar = fmapHK @Columnar' @f @x @y
 
-{-# INLINE hoistColumnar #-}
+{-# INLINABLE hoistColumnar #-}
 hoistColumnar
   :: forall
        x
@@ -465,7 +465,7 @@ hoistColumnar
   -> g_x
 hoistColumnar = hoistHK @Columnar' @f @g @x
 
-{-# INLINE transformColumnar #-}
+{-# INLINABLE transformColumnar #-}
 transformColumnar
   :: forall
        x y

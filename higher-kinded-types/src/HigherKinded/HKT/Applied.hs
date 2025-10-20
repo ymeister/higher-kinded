@@ -74,35 +74,35 @@ type (:$~>) = Applied
 --
 
 instance FromHKT Applied Identity x where
-  {-# INLINE fromHKT #-}
+  {-# INLINABLE fromHKT #-}
   fromHKT (Applied x) = Identity x
 
 --
 
 instance (FromHKT Applied f x) => FromHKT Applied (Ap f) x where
-  {-# INLINE fromHKT #-}
+  {-# INLINABLE fromHKT #-}
   fromHKT (Applied x) = Ap $ (fromHKT @Applied @f @x . Applied) $ x
 
 instance (Functor f, FromHKT Applied f (g $~> x), FromHKT Applied g x) => FromHKT Applied (Compose (f :: Type -> Type) (g :: Type -> Type)) x where
-  {-# INLINE fromHKT #-}
+  {-# INLINABLE fromHKT #-}
   fromHKT (Applied x) = Compose $ fmap (fromHKT . Applied) $ (fromHKT . Applied) $ x
 
 instance (Functor f, FromHKT Applied f (g $~> x), FromHKT Applied g x) => FromHKT Applied ((f :: Type -> Type) :.: (g :: Type -> Type)) x where
-  {-# INLINE fromHKT #-}
+  {-# INLINABLE fromHKT #-}
   fromHKT (Applied x) = Comp1 $ fmap (fromHKT . Applied) $ (fromHKT . Applied) $ x
 
 instance FromHKT Applied (Const x) a where
-  {-# INLINE fromHKT #-}
+  {-# INLINABLE fromHKT #-}
   fromHKT (Applied x) = Const x
 
 instance FromHKT Applied (Op x) y where
-  {-# INLINE fromHKT #-}
+  {-# INLINABLE fromHKT #-}
   fromHKT (Applied x) = Op x
 
 --
 
 instance FromHKT Applied (Applied f) x where
-  {-# INLINE fromHKT #-}
+  {-# INLINABLE fromHKT #-}
   fromHKT (Applied x) = Applied x
 
 instance
@@ -111,7 +111,7 @@ instance
   =>
     FromHKT Applied (HKT' hkt f) x
   where
-    {-# INLINE fromHKT #-}
+    {-# INLINABLE fromHKT #-}
     fromHKT = HKT' . unApplied
 
 instance
@@ -120,13 +120,13 @@ instance
   =>
     FromHKT Applied (ComposeHKT' hkt1 hkt2 (Compose f g)) x
   where
-    {-# INLINE fromHKT #-}
+    {-# INLINABLE fromHKT #-}
     fromHKT = ComposeHKT' . unApplied
 
 --
 
 instance {-# OVERLAPPABLE #-} ((f $~> x) ~ (f x)) => FromHKT Applied f x where
-  {-# INLINE fromHKT #-}
+  {-# INLINABLE fromHKT #-}
   fromHKT (Applied x) = x
 
 --
@@ -134,35 +134,35 @@ instance {-# OVERLAPPABLE #-} ((f $~> x) ~ (f x)) => FromHKT Applied f x where
 --
 
 instance ToHKT Applied Identity x where
-  {-# INLINE toHKT #-}
+  {-# INLINABLE toHKT #-}
   toHKT (Identity x) = Applied x
 
 --
 
 instance (ToHKT Applied f x) => ToHKT Applied (Ap f) x where
-  {-# INLINE toHKT #-}
+  {-# INLINABLE toHKT #-}
   toHKT (Ap f_x) = Applied $ (unApplied . toHKT @Applied @f @x) $ f_x
 
 instance (Functor f, ToHKT Applied f (g $~> x), ToHKT Applied g x) => ToHKT Applied (Compose (f :: Type -> Type) (g :: Type -> Type)) x where
-  {-# INLINE toHKT #-}
+  {-# INLINABLE toHKT #-}
   toHKT (Compose x) = Applied $ unApplied . toHKT $ fmap (unApplied . toHKT) x
 
 instance (Functor f, ToHKT Applied f (g $~> x), ToHKT Applied g x) => ToHKT Applied ((f :: Type -> Type) :.: (g :: Type -> Type)) x where
-  {-# INLINE toHKT #-}
+  {-# INLINABLE toHKT #-}
   toHKT (Comp1 x) = Applied $ unApplied . toHKT $ fmap (unApplied . toHKT) x
 
 instance ToHKT Applied (Const x) a where
-  {-# INLINE toHKT #-}
+  {-# INLINABLE toHKT #-}
   toHKT (Const x) = Applied x
 
 instance ToHKT Applied (Op x) y where
-  {-# INLINE toHKT #-}
+  {-# INLINABLE toHKT #-}
   toHKT (Op x) = Applied x
 
 --
 
 instance ToHKT Applied (Applied f) x where
-  {-# INLINE toHKT #-}
+  {-# INLINABLE toHKT #-}
   toHKT (Applied x) = Applied x
 
 instance
@@ -171,7 +171,7 @@ instance
   =>
     ToHKT Applied (HKT' hkt f) x
   where
-    {-# INLINE toHKT #-}
+    {-# INLINABLE toHKT #-}
     toHKT = Applied . unHKT'
 
 instance
@@ -180,13 +180,13 @@ instance
   =>
     ToHKT Applied (ComposeHKT' hkt1 hkt2 (Compose f g)) x
   where
-    {-# INLINE toHKT #-}
+    {-# INLINABLE toHKT #-}
     toHKT = Applied . unComposeHKT'
 
 --
 
 instance {-# OVERLAPPABLE #-} ((f $~> x) ~ (f x)) => ToHKT Applied f x where
-  {-# INLINE toHKT #-}
+  {-# INLINABLE toHKT #-}
   toHKT = Applied
 
 --
@@ -206,7 +206,7 @@ instance
   =>
     Functor (Applied f)
   where
-    {-# INLINE fmap #-}
+    {-# INLINABLE fmap #-}
     fmap f = HKT . fmap f . unHKT
 
 --
@@ -222,7 +222,7 @@ pattern App
 pattern App { unApp } <- (fromApp @f @x -> unApp) where
   App f_x = toApp @f @x f_x
 
-{-# INLINE fromApp #-}
+{-# INLINABLE fromApp #-}
 fromApp
   :: forall (f :: Type -> Type) x f_x.
      ( f_x ~$ (f :$~> x)
@@ -231,7 +231,7 @@ fromApp
   -> f x
 fromApp = fromHK @Applied @f @x
 
-{-# INLINE toApp #-}
+{-# INLINABLE toApp #-}
 toApp
   :: forall (f :: Type -> Type) x f_x.
      ( f_x ~$ (f :$~> x)
@@ -244,7 +244,7 @@ toApp = toHK @Applied @f @x
 -- | Transformers
 --
 
-{-# INLINE fmapApp #-}
+{-# INLINABLE fmapApp #-}
 fmapApp
   :: forall x y f f_x f_y.
      ( Functor f
@@ -256,7 +256,7 @@ fmapApp
   -> f_y
 fmapApp = fmapHK @Applied @f @x @y
 
-{-# INLINE hoistApp #-}
+{-# INLINABLE hoistApp #-}
 hoistApp
   :: forall
        x
@@ -271,7 +271,7 @@ hoistApp
   -> g_x
 hoistApp = hoistHK @Applied @f @g @x
 
-{-# INLINE transformApp #-}
+{-# INLINABLE transformApp #-}
 transformApp
   :: forall
        x y
