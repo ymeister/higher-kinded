@@ -23,10 +23,28 @@ name:               higher-kinded-types
 version:            0.1.0.0
 
 -- A short (one-line) description of the package.
-synopsis:           Higher-kinded data types
+synopsis:           Abstractions for higher-kinded type transformers and compositions
 
 -- A longer description of the package.
--- description:
+description:
+    The @higher-kinded-types@ library provides a unified framework for working with
+    higher-kinded type transformers in Haskell. It offers type-level transformations,
+    composition of HKT transformers, applied functor abstractions, and convenient
+    pattern synonyms for HKT manipulation.
+    .
+    Key features:
+    .
+    * Type classes for bidirectional HKT conversions ('IsHKT', 'FromHKT', 'ToHKT')
+    .
+    * Pattern synonyms for ergonomic HKT manipulation ('HKT', 'HK', 'App')
+    .
+    * Type-level application of functors with the '($~>)' type family
+    .
+    * Composition of multiple HKT transformers using 'ComposeHKT'
+    .
+    * Transformations for HKT-wrapped values ('fmapHK', 'hoistHK', 'transformHK')
+    .
+    * Support for isomorphic HKT representations
 
 -- URL for the project homepage or repository.
 homepage:           https://github.com/obsidiansystems/higher-kinded
