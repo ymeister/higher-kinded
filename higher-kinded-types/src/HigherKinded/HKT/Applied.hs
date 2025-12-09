@@ -16,17 +16,27 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ViewPatterns #-}
 
+-- | Applied higher-kinded types.
+--
+-- This module provides tools for working with applied type constructors,
+-- allowing type-level application of functors to their arguments.
 module HigherKinded.HKT.Applied
-  ( type ($~>)
+  ( -- * Type-Level Application
+    -- | Type family for applying functors at the type level.
+    type ($~>)
   , Apply
 
+    -- * Applied Type Wrapper
   , Applied(..)
   , type (:$~>)
 
+    -- * Pattern Synonyms and Conversions
   , pattern App
   , unApp
   , fromApp
   , toApp
+  
+    -- * Transformations
   , fmapApp
   , hoistApp
   , transformApp
@@ -44,6 +54,18 @@ import HigherKinded.HKT
 
 
 
+-- | Type family for type-level application of functors.
+--
+-- This type family reduces nested type constructors to their applied forms.
+-- It handles special cases for common functors from base and this library.
+--
+-- ==== __Examples__
+--
+-- @
+-- type R1 = Identity $~> Int        -- Result: Int
+-- type R2 = Const String $~> Int    -- Result: String
+-- type R3 = (Maybe :.: []) $~> Int  -- Result: Maybe $~> ([] $~> Int)
+-- @
 infixr 0 $~>
 type ($~>) :: (k1 -> k2) -> k1 -> k3
 type family ($~>) f x where
@@ -61,12 +83,25 @@ type family ($~>) f x where
   --
   ($~>) f x = f x
 
+-- | Type synonym for the application operator.
+--
+-- This is a more descriptive alias for @($~>)@.
 type Apply f x = f $~> x
 
 
-newtype Applied f x = Applied { unApplied :: f $~> x }
+-- | Newtype wrapper for applied functors.
+--
+-- This wrapper provides a uniform interface for working with
+-- type-level applied functors.
+newtype Applied f x = Applied 
+  { -- | Unwrap an applied functor value.
+    unApplied :: f $~> x 
+  }
   deriving stock (Generic)
 
+-- | Infix type synonym for 'Applied'.
+--
+-- Allows writing @f :$~> x@ instead of @Applied f x@.
 type (:$~>) = Applied
 
 --
@@ -213,6 +248,22 @@ instance
 -- | Wrappers
 --
 
+-- | Bidirectional pattern synonym for applied functors.
+--
+-- This pattern allows you to work with applied functors as if they
+-- were regular data constructors.
+--
+-- ==== __Examples__
+--
+-- @
+-- -- Pattern matching
+-- processApp :: f_x ~$ (Maybe :$~> Int) => f_x -> Maybe Int
+-- processApp (App mx) = mx
+--
+-- -- Construction
+-- makeApp :: f_x ~$ (Maybe :$~> Int) => Maybe Int -> f_x
+-- makeApp mx = App mx
+-- @
 pattern App
   :: forall (f :: Type -> Type) x f_x.
      ( f_x ~$ (f :$~> x)
@@ -222,6 +273,7 @@ pattern App
 pattern App { unApp } <- (fromApp @f @x -> unApp) where
   App f_x = toApp @f @x f_x
 
+-- | Convert from an applied functor representation to the underlying functor.
 {-# INLINABLE fromApp #-}
 fromApp
   :: forall (f :: Type -> Type) x f_x.
@@ -231,6 +283,7 @@ fromApp
   -> f x
 fromApp = fromHK @Applied @f @x
 
+-- | Convert from a functor to its applied representation.
 {-# INLINABLE toApp #-}
 toApp
   :: forall (f :: Type -> Type) x f_x.
@@ -244,6 +297,9 @@ toApp = toHK @Applied @f @x
 -- | Transformers
 --
 
+-- | Map a function over an applied functor.
+--
+-- This is 'fmap' lifted to work with applied functors.
 {-# INLINABLE fmapApp #-}
 fmapApp
   :: forall x y f f_x f_y.
@@ -256,6 +312,10 @@ fmapApp
   -> f_y
 fmapApp = fmapHK @Applied @f @x @y
 
+-- | Lift a natural transformation to work with applied functors.
+--
+-- This allows changing the underlying functor while preserving
+-- the applied structure.
 {-# INLINABLE hoistApp #-}
 hoistApp
   :: forall
@@ -271,6 +331,9 @@ hoistApp
   -> g_x
 hoistApp = hoistHK @Applied @f @g @x
 
+-- | Transform both the functor and element type of an applied functor.
+--
+-- This is the most general transformation for applied functors.
 {-# INLINABLE transformApp #-}
 transformApp
   :: forall
