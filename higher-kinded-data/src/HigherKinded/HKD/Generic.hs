@@ -21,9 +21,14 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
--- | Based on 'HKD' from 'Data.Generic.HKD.Types from package 'higgledy'
---   by Tom Harding ((c) Tom Harding, 2019, MIT)
-
+-- | Generic representation of higher-kinded data types.
+--
+-- This module provides the 'HKD' type for creating generic higher-kinded
+-- data representations, along with utilities for field modifications
+-- and type-level operations.
+--
+-- Based on 'HKD' from 'Data.Generic.HKD.Types from package 'higgledy'
+-- by Tom Harding ((c) Tom Harding, 2019, MIT)
 module HigherKinded.HKD.Generic
   ( module HigherKinded.HKD.Generic
   , OnFields
@@ -58,21 +63,62 @@ import HigherKinded.HKD.Class
 
 
 
+-- | Type operator for applying an HKT to a structure.
+--
+-- @structure |~ hkt@ creates an HKD representation of @structure@ with the
+-- given HKT transformer.
+--
+-- ==== __Examples__
+--
+-- @
+-- type MyHKD = MyData |~ Applied
+-- @
 type (|~) :: Type -> k1 -> k2
 type family (|~) structure hkt = r | r -> structure hkt where
   (|~) structure (hkt f) = (structure |~~ hkt) f
   (|~) structure hkt = structure |~~ hkt
 
+-- | Internal helper for the '(|~)' operator.
 type (|~~) structure hkt = HKD structure (HKT' hkt)
 
 
+-- | Generic higher-kinded data representation.
+--
+-- @HKD structure hkt f@ represents a higher-kinded version of @structure@
+-- where each field is wrapped in the functor @f@ using the HKT transformer @hkt@.
+--
+-- ==== __Examples__
+--
+-- @
+-- data Person = Person { name :: String, age :: Int } deriving Generic
+--
+-- -- Create an HKD version with Maybe
+-- type PersonMaybe = HKD Person Applied Maybe
+--
+-- -- Create an HKD version with validation
+-- type PersonValidation = HKD Person Applied (Either ValidationError)
+-- @
 type HKD :: Type -> ((Type -> Type) -> Type -> Type) -> (Type -> Type) -> Type
 newtype HKD structure hkt f = GHKD { unGHKD :: GHKD_ (Rep structure) hkt f () }
 
 
+-- | Type synonym for the underlying HKD representation.
+--
+-- This is primarily for internal use.
 type HKD_ :: Type -> ((Type -> Type) -> Type -> Type) -> (Type -> Type) -> (Type -> Type)
 type HKD_ structure hkt f = GHKD_ (Rep structure) hkt f
 
+-- | Type family for computing the generic HKD representation.
+--
+-- This type family transforms a generic representation into its HKD form,
+-- handling various cases including nested HKD types and applied functors.
+--
+-- The transformation rules are:
+-- * Metadata is preserved
+-- * Products and sums are mapped recursively
+-- * Regular fields are wrapped with the HKT transformer
+-- * Nested HKD types are handled specially
+-- * Applied functors are expanded
 type GHKD_ :: (Type -> Type) -> ((Type -> Type) -> Type -> Type) -> (Type -> Type) -> (Type -> Type)
 type family GHKD_ structureRep hkt f = (res :: Type -> Type) where
   GHKD_ (M1 index meta inner) hkt f = M1 index meta (GHKD_ inner hkt f)
@@ -86,12 +132,31 @@ type family GHKD_ structureRep hkt f = (res :: Type -> Type) where
 
 --------------------------------------------------------------------------------
 
+-- | Wrapper for nested HKD types.
+--
+-- This newtype is used to mark types that should be treated as nested
+-- HKD structures in generic derivations.
 newtype NestedHKD t = NestedHKD { unNestedHKD :: t }
   deriving newtype (Eq, Ord, Show, Generic)
 
+-- | Type synonym for applying modifications to a type.
+--
+-- This uses the generic-lens-core machinery for type-level surgeries.
 type WithMods :: Type -> [Type] -> Type
 type WithMods t mods = Surgeries mods t
 
+-- | Type operator for field replacement.
+--
+-- @field .~ t@ replaces the type of @field@ with @t@.
+--
+-- ==== __Examples__
+--
+-- @
+-- type ModifiedPerson = Person \`WithMods\`
+--   '[ "name" .~ Text     -- Replace String with Text  
+--    , "age" .~ Natural   -- Replace Int with Natural
+--    ]
+-- @
 type (.~) :: Symbol -> Type -> Type
 type (.~) field t = field %~ Applied (Const t)
 

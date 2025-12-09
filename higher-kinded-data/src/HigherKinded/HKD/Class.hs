@@ -19,6 +19,11 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
+-- | Core type classes for higher-kinded data.
+--
+-- This module defines the fundamental type classes and instances for working
+-- with higher-kinded data structures, including generic derivations and
+-- transformations between different functor representations.
 module HigherKinded.HKD.Class
   ( module HigherKinded.HKD.Class
   , FunctorB (..)
@@ -44,6 +49,16 @@ import HigherKinded.HKD.Internal.Exposed
 
 
 
+-- | The main type class for higher-kinded data structures.
+--
+-- An instance @IsHKD hkd hkt f@ indicates that @hkd@ is a higher-kinded
+-- data type that can be used with the HKT transformer @hkt@ and functor @f@.
+--
+-- This class enables generic derivations of 'FunctorB', 'ApplicativeB',
+-- 'TraversableB', and 'ConstraintsB' instances.
+--
+-- Most users will not need to implement this class directly, as it can be
+-- derived automatically for types with 'Generic' instances.
 class
     ( IsNormalHKD hkd hkt f
     , IsNormalHKD hkd hkt Exposed
@@ -114,12 +129,22 @@ instance
 
 --------------------------------------------------------------------------------
 
+-- | Normalized representation of a higher-kinded data type.
+--
+-- This newtype wrapper provides a uniform representation for HKD values
+-- that enables generic programming.
 newtype NormalHKD hkd hkt f x = NormalHKD
   { unNormalHKD :: NormalHKDRep hkd hkt f x
   }
 
+-- | Type family for the normalized representation of an HKD type.
+--
+-- This computes the generic representation used internally for HKD transformations.
 type NormalHKDRep hkd hkt f = GNormalHKDRep hkt f (Rep (hkd Exposed)) (Rep (hkd f))
 
+-- | Class for types that can be converted to/from their normalized HKD representation.
+--
+-- This class is automatically satisfied for types with 'Generic' instances.
 class
     ( Generic (hkd f)
     , Generic (hkd Exposed)
@@ -128,7 +153,9 @@ class
   =>
     IsNormalHKD hkd hkt f
   where
+    -- | Convert to the normalized representation.
     toNormalHKD :: hkd f -> NormalHKDRep hkd hkt f x
+    -- | Convert from the normalized representation.
     fromNormalHKD :: NormalHKDRep hkd hkt f x -> hkd f
 
 instance
@@ -147,7 +174,12 @@ instance
 
 
 
+-- | Generic class for normalizing HKD representations.
+--
+-- This class handles the conversion between generic representations
+-- and normalized HKD forms.
 class GIsNormalHKDRep hkt f rep_exp rep where
+  -- | The normalized generic representation.
   type GNormalHKDRep hkt f rep_exp rep :: Type -> Type
 
   gtoNormalHKDRep
@@ -282,6 +314,18 @@ instance
 
 --------------------------------------------------------------------------------
 
+-- | Class for isomorphic HKD transformations.
+--
+-- @IsoHKD hkd1 hkd2 hkt1 hkt2 f g@ provides an isomorphism between
+-- @hkd1 f@ and @hkd2 g@ using the HKT transformers @hkt1@ and @hkt2@.
+--
+-- ==== __Examples__
+--
+-- @
+-- -- Convert between different HKD representations
+-- convert :: IsoHKD MyHKD YourHKD hkt1 hkt2 f g => MyHKD f -> YourHKD g
+-- convert = isoHKD
+-- @
 class
     IsoHKD
       (hkd1 :: (Type -> Type) -> Type)
@@ -291,6 +335,7 @@ class
       (f :: Type -> Type)
       (g :: Type -> Type)
   where
+    -- | Convert between isomorphic HKD representations.
     isoHKD :: hkd1 f -> hkd2 g
 
     {-# INLINABLE isoHKD #-}
@@ -311,6 +356,11 @@ instance {-# OVERLAPPABLE #-}
 
 --------------------------------------------------------------------------------
 
+-- | Class for coercible HKD transformations.
+--
+-- This class provides zero-cost conversions between HKD types when
+-- their representations are coercible. This is more efficient than
+-- 'IsoHKD' when applicable.
 class
     ( IsNormalHKD hkd1 hkt1 f
     , IsNormalHKD hkd2 hkt2 g
@@ -327,6 +377,7 @@ class
       (f :: Type -> Type)
       (g :: Type -> Type)
   where
+    -- | Coerce between HKD representations with zero runtime cost.
     coerceHKD :: hkd1 f -> hkd2 g
 
 instance
@@ -344,7 +395,15 @@ instance
 
 --------------------------------------------------------------------------------
 
+-- | Class for bi-traversable HKD structures.
+--
+-- This class enables traversing two HKD structures simultaneously,
+-- combining corresponding fields with an applicative operation.
 class BiTraversableHKD (hkd :: (Type -> Type) -> Type) (hkt :: (Type -> Type) -> Type -> Type) (f :: Type -> Type) (g :: Type -> Type) (h :: Type -> Type) where
+  -- | Traverse two HKD structures field-by-field.
+  --
+  -- The combining function is applied to corresponding fields from
+  -- both structures, producing a new structure in an applicative context.
   bitraverseHKD
     :: Applicative t
     => (forall a. f a -> g a -> t (h a))
@@ -403,7 +462,12 @@ instance
 
 
 
+-- | Generic bi-traversal for normalized HKD representations.
+--
+-- This class provides the generic machinery for bi-traversing
+-- normalized HKD structures.
 class GBiTraversableNormalHKDRep hkt f g h rep_exp rep_f rep_g rep_h where
+  -- | Bi-traverse the normalized representation.
   gbitraverseNormalHKDRep
     :: Applicative t
     => (forall a. f a -> g a -> t (h a))
@@ -496,7 +560,12 @@ instance
 
 --------------------------------------------------------------------------------
 
+-- | Class for traversable HKD structures.
+--
+-- This class provides traversal operations over HKD structures,
+-- similar to 'TraversableB' from barbies.
 class TraversableHKD (hkd :: (Type -> Type) -> Type) (hkt :: (Type -> Type) -> Type -> Type) (f :: Type -> Type) (g :: Type -> Type) where
+  -- | Traverse an HKD structure with an applicative function.
   traverseHKD
     :: Applicative t
     => (forall a. f a -> t (g a))
@@ -548,7 +617,12 @@ instance
 
 
 
+-- | Generic traversal for normalized HKD representations.
+--
+-- This class provides the generic machinery for traversing
+-- normalized HKD structures.
 class GTraversableNormalHKDRep hkt f g rep_exp rep_f rep_g where
+  -- | Traverse the normalized representation.
   gtraverseNormalHKDRep
     :: Applicative t
     => (forall a. f a -> t (g a))
@@ -652,7 +726,12 @@ instance
 
 --------------------------------------------------------------------------------
 
+-- | Functor-like class for HKD structures.
+--
+-- This class provides mapping operations over HKD structures,
+-- similar to 'FunctorB' from barbies but with explicit type parameters.
 class FunctorHKD hkd hkt f g where
+  -- | Map a natural transformation over an HKD structure.
   mapHKD
     :: (forall a. f a -> g a)
     -> hkd f
@@ -670,6 +749,16 @@ instance {-# OVERLAPPABLE #-} TraversableHKD hkd hkt f g => FunctorHKD hkd hkt f
 
 
 
+-- | Create an HKD structure with all fields set to the same value.
+--
+-- This is analogous to 'pure' for applicative functors, but works
+-- at the structure level.
+--
+-- @
+-- -- Create an HKD structure with all fields as Nothing
+-- emptyPerson :: HKD Person Applied Maybe
+-- emptyPerson = pureHKD @(HKD Person Applied) @Applied Nothing
+-- @
 {-# INLINABLE pureHKD #-}
 pureHKD
   :: forall hkd hkt f.
@@ -679,6 +768,10 @@ pureHKD
   -> hkd f
 pureHKD zero = mapHKD @hkd @hkt @f @f (const zero) undefined
 
+-- | Transform an HKD structure wrapped in functors.
+--
+-- This combines mapping over the HKD structure with lifting
+-- through HKT transformers, enabling complex transformations.
 {-# INLINABLE transformHKD #-}
 transformHKD
   :: forall hkd hkt1 hkt2 f g f_hkd_f f_hkd_g g_hkd_g.
@@ -695,7 +788,13 @@ transformHKD f = hoistHK @hkt1 @f @g @(hkd g) f . fmapHK @hkt1 @f (mapHKD @hkd @
 
 --------------------------------------------------------------------------------
 
+-- | Class for zippable HKD structures.
+--
+-- This class allows combining two HKD structures field-by-field.
 class ZippableHKD hkd hkt f g h where
+  -- | Zip two HKD structures together using a combining function.
+  --
+  -- The function is applied to corresponding fields from both structures.
   zipHKD
     :: (forall a. f a -> g a -> h a)
     -> hkd f
@@ -716,6 +815,10 @@ instance {-# OVERLAPPABLE #-} BiTraversableHKD hkd hkt f g h => ZippableHKD hkd 
 
 --------------------------------------------------------------------------------
 
+-- | Attach constraint dictionaries to each field of an HKD structure.
+--
+-- This function pairs each field with a dictionary proving the constraint
+-- holds for that field's type.
 {-# INLINABLE withConstrainedFieldsHKD #-}
 withConstrainedFieldsHKD
   :: forall c hkd hkt f.
@@ -725,12 +828,29 @@ withConstrainedFieldsHKD
   => hkd f -> hkd (Dict c `Product` f)
 withConstrainedFieldsHKD = zipHKD @hkd @hkt (Pair) (withConstraintsHKD @c @hkd)
 
+-- | Generate an HKD structure containing constraint dictionaries.
+--
+-- For each field in the HKD structure, this generates a 'Dict' proving
+-- that the constraint @c@ holds for that field's type.
+--
+-- @
+-- -- Get Show dictionaries for all fields
+-- dicts :: HKDFieldsHave Show MyHKD => MyHKD (Dict Show)
+-- dicts = withConstraintsHKD
+-- @
 {-# INLINABLE withConstraintsHKD #-}
 withConstraintsHKD :: forall c hkd. HKDFieldsHave c hkd => hkd (Dict c)
 withConstraintsHKD = G.to $ gWithConstrainedFields (Proxy @c) (Proxy @(Rep (hkd Exposed)))
 
 
 
+-- | Class for HKD structures where all fields satisfy a constraint.
+--
+-- @HKDFieldsHave c hkd@ means that for every field type @a@ in @hkd@,
+-- the constraint @c a@ holds.
+--
+-- This is useful for operations that require all fields to be instances
+-- of a particular class, like 'Show' or 'Eq'.
 class
     ( Generic (t (Dict c)), Generic (t Identity), Generic (t Exposed)
     , GHKDFieldsHave c (Rep (t Exposed)) (Rep (t (Dict c)))
@@ -745,6 +865,10 @@ instance
 
 
 
+-- | Class for nested HKD structures where fields satisfy a constraint.
+--
+-- Similar to 'HKDFieldsHave' but for HKD structures that are themselves
+-- parameterized by another functor @f@.
 class
     ( Generic (t (f (Dict c))), Generic (t (f Identity)), Generic (t (f Exposed))
     , GHKDFieldsHave c (Rep (t (f Exposed))) (Rep (t (f (Dict c))))
@@ -759,7 +883,12 @@ instance
 
 
 
+-- | Generic helper class for 'HKDFieldsHave'.
+--
+-- This class handles the generic representation of constraint satisfaction
+-- across HKD fields.
 class GHKDFieldsHave (c :: Type -> Constraint) (exposed :: Type -> Type) withconstraint where
+  -- | Generate constraint dictionaries for the generic representation.
   gWithConstrainedFields :: Proxy c -> Proxy exposed -> withconstraint ()
 instance GHKDFieldsHave c exposed withconstraint =>
     GHKDFieldsHave c (M1 s m exposed) (M1 s m withconstraint) where
@@ -786,6 +915,33 @@ instance HKDFieldsHaveF c t f =>
 
 --------------------------------------------------------------------------------
 
+-- | Type family for providing default values in HKD structures.
+--
+-- This type family helps with partial application of HKD types,
+-- allowing you to specify a default functor or fall back to the
+-- bare HKD type.
+--
+-- ==== __Examples__
+--
+-- @
+-- data Person' f = Person
+--   { name :: f String
+--   , age :: f Int
+--   }
+--
+-- -- Define a type synonym with default Identity functor
+-- type Person = DefaultHKD Person' Identity
+--
+-- -- These type signatures are equivalent:
+-- getPerson :: Person -> String
+-- getPerson :: Person Identity -> String
+-- getPerson :: DefaultHKD Person' Identity -> String
+-- getPerson :: Person' Identity -> String
+--
+-- -- Can still use with other functors explicitly
+-- validatePerson :: Person Maybe -> Bool
+-- validatePerson :: Person' Maybe -> Bool
+-- @
 type DefaultHKD :: ((Type -> Type) -> Type) -> (Type -> Type) -> k
 type family DefaultHKD hkd def where
   DefaultHKD hkd def = hkd def

@@ -12,9 +12,28 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ViewPatterns #-}
 
--- | Based on 'Data.Generic.HKD.Construction from package 'higgledy'
---   by Tom Harding ((c) Tom Harding, 2019, MIT)
-
+-- | Construction and deconstruction of HKD values.
+--
+-- This module provides utilities for converting between regular data types
+-- and their HKD representations, particularly useful when working with
+-- applicative functors.
+--
+-- Based on 'Data.Generic.HKD.Construction from package 'higgledy'
+-- by Tom Harding ((c) Tom Harding, 2019, MIT)
+--
+-- ==== __Examples__
+--
+-- @
+-- data Person = Person { name :: String, age :: Int } deriving Generic
+--
+-- -- Convert from HKD to regular value
+-- fromHKDPerson :: HKD Person Applied Identity -> Identity Person
+-- fromHKDPerson = fromHKD
+--
+-- -- Convert from regular value to HKD
+-- toHKDPerson :: Identity Person -> HKD Person Applied Identity
+-- toHKDPerson = toHKD
+-- @
 module HigherKinded.HKD.Construction where
 
 import Data.Kind
@@ -27,8 +46,19 @@ import HigherKinded.HKD.Generic
 
 
 
+-- | Class for constructing and deconstructing HKD values.
+--
+-- This class provides bidirectional conversion between HKD representations
+-- and regular values wrapped in a functor.
+--
+-- @hkd@ - The HKD type constructor
+-- @structure@ - The underlying structure type
+-- @hkt@ - The HKT transformer
+-- @f@ - The functor to use for wrapping
 class ConstructHKD (hkd :: (Type -> Type) -> Type) (structure :: Type) (hkt :: (Type -> Type) -> Type -> Type) (f :: Type -> Type) where
+  -- | Convert from an HKD representation to a wrapped structure.
   fromHKD :: hkd f -> f structure
+  -- | Convert from a wrapped structure to an HKD representation.
   toHKD :: f structure -> hkd f
 
 instance {-# OVERLAPPABLE #-} GConstructHKD hkd structure hkt f => ConstructHKD hkd structure hkt f where

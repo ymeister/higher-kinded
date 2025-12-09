@@ -15,9 +15,29 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ViewPatterns #-}
 
--- | Based on 'Data.Generic.HKD.Named' from package 'higgledy'
---   by Tom Harding ((c) Tom Harding, 2019, MIT)
-
+-- | Building HKD values with named fields.
+--
+-- This module provides the 'Build' class for constructing HKD values
+-- using named arguments, making it easier to work with complex
+-- higher-kinded data structures.
+--
+-- Based on 'Data.Generic.HKD.Named' from package 'higgledy'
+-- by Tom Harding ((c) Tom Harding, 2019, MIT)
+--
+-- ==== __Examples__
+--
+-- @
+-- data Person f = Person
+--   { name :: f String
+--   , age :: f Int
+--   } deriving Generic
+--
+-- -- Build a Person with Identity
+-- person :: Person Identity
+-- person = build @(Person Identity)
+--   (\"name\" :! Identity \"Alice\")
+--   (\"age\" :! Identity 30)
+-- @
 module HigherKinded.HKD.Build
   ( Build (..)
   , pattern (:!)
@@ -33,7 +53,19 @@ import HigherKinded.HKD.Generic
 
 
 
+-- | Class for building HKD values.
+--
+-- The 'Build' class provides a way to construct HKD values using
+-- named arguments. The type @k@ represents the type of the builder
+-- function that constructs values of type @hkd@.
+--
+-- The functional dependencies ensure that the builder type uniquely
+-- determines the HKD type and vice versa.
 class Build (hkd :: Type) (k :: Type) | hkd -> k, k -> hkd where
+  -- | Construct an HKD value.
+  --
+  -- The specific type of this function depends on the structure
+  -- of the HKD type being built.
   build :: k
 
 
