@@ -311,23 +311,36 @@ instance {-# OVERLAPPABLE #-}
 
 --------------------------------------------------------------------------------
 
-{-# INLINABLE coerceHKD #-}
-coerceHKD
-  :: forall
-       (hkd1 :: (Type -> Type) -> Type)
-       (hkd2 :: (Type -> Type) -> Type)
-       (hkt1 :: (Type -> Type) -> Type -> Type)
-       (hkt2 :: (Type -> Type) -> Type -> Type)
-       (f :: Type -> Type)
-       (g :: Type -> Type).
-     ( IsNormalHKD hkd1 hkt1 f
-     , IsNormalHKD hkd2 hkt2 g
-     , Coercible
-         (GNormalHKDRep hkt1 f (Rep (hkd1 Exposed)) (Rep (hkd1 f)) ())
-         (GNormalHKDRep hkt2 g (Rep (hkd2 Exposed)) (Rep (hkd2 g)) ())
-     )
-  => hkd1 f -> hkd2 g
-coerceHKD = fromNormalHKD @hkd2 @hkt2 @g @() . coerce . toNormalHKD @hkd1 @hkt1 @f @()
+class
+    ( IsNormalHKD hkd1 hkt1 f
+    , IsNormalHKD hkd2 hkt2 g
+    , Coercible
+        (GNormalHKDRep hkt1 f (Rep (hkd1 Exposed)) (Rep (hkd1 f)) ())
+        (GNormalHKDRep hkt2 g (Rep (hkd2 Exposed)) (Rep (hkd2 g)) ())
+    )
+  =>
+    CoercibleHKD
+      (hkd1 :: (Type -> Type) -> Type)
+      (hkd2 :: (Type -> Type) -> Type)
+      (hkt1 :: (Type -> Type) -> Type -> Type)
+      (hkt2 :: (Type -> Type) -> Type -> Type)
+      (f :: Type -> Type)
+      (g :: Type -> Type)
+  where
+    coerceHKD :: hkd1 f -> hkd2 g
+
+instance
+    ( IsNormalHKD hkd1 hkt1 f
+    , IsNormalHKD hkd2 hkt2 g
+    , Coercible
+        (GNormalHKDRep hkt1 f (Rep (hkd1 Exposed)) (Rep (hkd1 f)) ())
+        (GNormalHKDRep hkt2 g (Rep (hkd2 Exposed)) (Rep (hkd2 g)) ())
+    )
+  =>
+    CoercibleHKD hkd1 hkd2 hkt1 hkt2 f g
+  where
+    {-# INLINABLE coerceHKD #-}
+    coerceHKD = fromNormalHKD @hkd2 @hkt2 @g @() . coerce . toNormalHKD @hkd1 @hkt1 @f @()
 
 --------------------------------------------------------------------------------
 
