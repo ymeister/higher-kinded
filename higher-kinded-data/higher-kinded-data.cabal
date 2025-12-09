@@ -23,10 +23,32 @@ name:               higher-kinded-data
 version:            0.1.0.0
 
 -- A short (one-line) description of the package.
-synopsis:           Higher-kinded data types
+synopsis:           Higher-kinded data with multiple HKT transformers for flexible generic programming
 
 -- A longer description of the package.
--- description:
+description:
+    The @higher-kinded-data@ library extends the concept of higher-kinded data types
+    by supporting multiple higher-kinded transformers (HKTs), going beyond traditional
+    HKD libraries like @barbies@ and @higgledy@.
+    .
+    While standard HKD libraries parameterize data types by a functor, this library adds
+    an additional parameter for the HKT transformer that determines how functors are
+    applied to fields. This enables powerful abstractions such as:
+    .
+    * Multiple transformation strategies for the same data type
+    .
+    * Composable HKT transformers via 'ComposeHKT'
+    .
+    * Isomorphisms between different HKD representations with 'IsoHKD'
+    .
+    * Zero-cost conversions when possible via 'CoercibleHKD'
+    .
+    * Type-level computation with the '($~>)' type family
+    .
+    * Generic derivation of HKD instances via GHC Generics
+    .
+    Key use cases include multi-stage validation pipelines, database ORM interoperability,
+    effect composition, and gradual type refinement through data processing stages.
 
 -- URL for the project homepage or repository.
 homepage:           https://github.com/obsidiansystems/higher-kinded
